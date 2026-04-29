@@ -71,8 +71,23 @@ bool MHookHandler5::OnRUp()
 	// Начинаем новый отсчет движений
 	MHVector::Reset();
 	if(-1!=position_mem) MHKeypad::Press8(position_mem,false);
-	// Нажимаем кнопку (сброс)
-	MHKeypad::Press4(10,true);
-	MHKeypad::Press4(10,false);
+	// Автоклик
+	if(movement_happened)
+	{
+		if(MHSettings::flag_mode5autoclick)
+		{
+			INPUT input[2]={0};
+			input[0].type=INPUT_MOUSE;
+			input[1].type=INPUT_MOUSE;
+			input[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+			input[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+			SendInput(2,&input[0],sizeof(INPUT));
+		}
+	}
+	else // Нажимаем кнопку (сброс)
+	{
+		MHKeypad::Press4(10,true);
+		MHKeypad::Press4(10,false);
+	}
 	return true; // подавляйте правый клик
 }

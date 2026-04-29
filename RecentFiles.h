@@ -25,7 +25,7 @@ private:
 	static bool initialized;
 	static std::basic_string<TCHAR> lastLoadedName;
 	static void LoadEmbeddedFiles();
-	static std::basic_string<TCHAR> GetExecutableDirectory();
 	static bool LoadEmbeddedConfig(HWND hwnd, const RecentFileInfo& file);
+	static std::basic_string<TCHAR> GetExecutableDirectory();
 };
 #endif

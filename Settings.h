@@ -24,11 +24,11 @@ public:
 		flag_left_mb_push_twice, flag_right_mb_push_twice,
 		flag_downall, flag_skip_fast, flag_up_immediately;
 	static bool flag_autoclick_lmb;
-	static bool flag_autoclick_ahk;
-	static DWORD ahk_process_id;
-	static bool flag_wheel_ahk;
-	static DWORD wheel_ahk_process_id;
 	static int autoclick_speed_index;
+	static bool flag_autoclick_ahk;
+	static bool flag_wheel_ahk;
+	static bool flag_autoclick_ahk_loaded;
+	static bool flag_wheel_ahk_loaded;
 	static bool flag_cursor_visible;
 	static int mode,mode3axe;
 	static int circle_scale_factor;
@@ -37,7 +37,6 @@ public:
 	static void FillDialogue(HWND hdwnd);
 	static void AfterLoad(HWND hdwnd);
 	static void BeforeSaveOrStart(HWND hdwnd);
-	static void StartAutoHotkeyScripts();
 	// Для второго окна диалога
 	static void FillDialogue2(HWND hdwnd);
 	static void BeforeSaveOrStart2(HWND hdwnd);

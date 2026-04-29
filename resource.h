@@ -332,10 +332,10 @@
 #define IDC_CHECK_AUTOCLICK             1700
 #define IDC_AUTOCLICK_SPEED             1701
 #define IDC_CHECK_LMB_AUTOCLICK         1702
-#define IDC_CHECK_AUTOCLICK_AHK        1705
-#define IDC_CHECK_WHEEL_AHK            1706
-#define IDC_LIST_RECENT_FILES          1703
-#define IDC_BUTTON_LOAD_BY_WINDOW       1704
+#define IDC_CHECK_AHK_AUTOCLICK         1703
+#define IDC_CHECK_WHEEL_AHK             1704
+#define IDC_LIST_RECENT_FILES           1705
+#define IDC_BUTTON_LOAD_BY_WINDOW       1706
 #define IDR_EMBEDDEDSETTINGS            2
 #define IDR_RECENTFILES_CACHE           3
 

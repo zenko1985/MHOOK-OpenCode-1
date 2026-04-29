@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
+#include <shellapi.h>
+#include <tlhelp32.h>
 #pragma comment(lib, "shlwapi.lib")
 #include "Bitmap.h"
 #include "Settings.h"
@@ -85,40 +87,57 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 				switch(top_position)
 				{
 				case 0:
-					// Левый нижний угол - таймер левой кнопки
+					// Теперь смена позиция происходит только по выезду мыши из области!
+					//top_position=-1;
 					if(MHSettings::hh) MHSettings::hh->TopLeftCornerTimer();
 					break;
 				case 1:
-					// Правый нижний угол - убить AHK + открытие настроек
-					if(MHSettings::ahk_process_id != 0)
-					{
-						WinExec("taskkill /F /IM AutoHotkey64.exe", SW_HIDE);
-						Sleep(100);
-						WinExec("taskkill /F /IM AutoHotkey.exe", SW_HIDE);
-						MHSettings::ahk_process_id = 0;
+				{
+					// Выгружаем AHK скрипты перед открытием диалога настроек
+					HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+					if(hSnap != INVALID_HANDLE_VALUE) {
+						PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
+						if(Process32First(hSnap, &pe)) {
+							do {
+								if(MHSettings::flag_autoclick_ahk && MHSettings::flag_autoclick_ahk_loaded) {
+									if(_tcsicmp(pe.szExeFile, _T("Авто клик.exe")) == 0) {
+										MHSettings::flag_autoclick_ahk_loaded=false;
+										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
+									}
+								}
+								if(MHSettings::flag_wheel_ahk && MHSettings::flag_wheel_ahk_loaded) {
+									if(_tcsicmp(pe.szExeFile, _T("Колёсико.exe")) == 0 || _tcsicmp(pe.szExeFile, _T("Колесико.exe")) == 0) {
+										MHSettings::flag_wheel_ahk_loaded=false;
+										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
+									}
+								}
+							} while(Process32Next(hSnap, &pe));
+						}
+						CloseHandle(hSnap);
 					}
-					// Также убить скрипт колесика
-					if(MHSettings::wheel_ahk_process_id != 0)
-					{
-						WinExec("taskkill /F /IM AutoHotkey64.exe", SW_HIDE);
-						Sleep(100);
-						WinExec("taskkill /F /IM AutoHotkey.exe", SW_HIDE);
-						MHSettings::wheel_ahk_process_id = 0;
-					}
+				}
+					// Теперь смена позиция происходит только по выезду мыши из области!
+					//top_position=-1;
+					// Скрываем красную точку перед открытием диалога настроек
 					CursorDot::Hide();
-					if(MHSettings::SettingsDialogue(MHhwnd))
-					{
-						if((3==MHSettings::mode)||(4==MHSettings::mode)||(1==MHSettings::mode)) KillTimer(hwnd,1);
-						MHKeypad::Reset();
-						UnhookWindowsHookEx(handle);
-						PostQuitMessage(0);
-					}
-					top_position = -1;
-					if(MHSettings::flag_cursor_visible)
-						CursorDot::Show();
-					else
-						CursorDot::Hide();
-					break;
+					//if(MHSettings::SettingsDialogue(hwnd))
+				if(MHSettings::SettingsDialogue(MHhwnd))
+				{
+					// Чистим за собой - возможно, излишне
+					if((3==MHSettings::mode)||(4==MHSettings::mode)||(1==MHSettings::mode)) KillTimer(hwnd,1);
+					MHKeypad::Reset();
+					UnhookWindowsHookEx(handle);
+					PostQuitMessage(0);
+				}
+				// Показываем или скрываем красную точку курсора после закрытия диалога
+				if(MHSettings::flag_cursor_visible)
+					CursorDot::Show();
+				else
+					CursorDot::Hide();
+				// Тут будет вывод диалога настроек
+				break;
 				} // Закрываем switch(top_position)
 				//Beep(450,100);
 				break;
@@ -142,10 +161,9 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 				CursorDot::UpdatePosition();
 			break;
 		case 6:
-			// Таймер автокликера - полный клик (нажать + отпустить)
+			// Таймер автокликера - пульсация нажатия клавиши
 			MHKeypad::Press4(5, false); // Отпустить
-			Sleep(10);
-			MHKeypad::Press4(5, true);  // Нажать снова
+			MHKeypad::Press4(5, true);  // Нажать
 			break;
 		}
 			break;

@@ -62,23 +62,33 @@ std::basic_string<TCHAR> RecentFiles::GetExecutableDirectory() {
 }
 bool RecentFiles::LoadEmbeddedConfig(HWND hwnd, const RecentFileInfo& file) {
 	if (file.content.empty()) return false;
-	TCHAR exePath[MAX_PATH];
-	GetModuleFileName(NULL, exePath, MAX_PATH);
-	PathRemoveFileSpec(exePath);
-	TCHAR tempFile[MAX_PATH];
-	wcscpy_s(tempFile, exePath);
-	wcscat_s(tempFile, L"~$temp.mhook");
-	DeleteFile(tempFile);
-	std::ofstream fout;
-	fout.open(tempFile, std::ios::binary);
-	if (!fout.is_open()) return false;
-	fout.write(file.content.data(), file.content.size());
-	fout.close();
 	std::basic_string<TCHAR> displayName = file.filename;
 	size_t dotPos = displayName.find_last_of(_T('.'));
 	if (dotPos != std::basic_string<TCHAR>::npos) {
 		displayName = displayName.substr(0, dotPos);
 	}
+	std::basic_string<TCHAR> safeName;
+	for (size_t i = 0; i < displayName.length(); i++) {
+		TCHAR c = displayName[i];
+		if (c == _T('\\') || c == _T('/') || c == _T(':') || c == _T('*') ||
+			c == _T('?') || c == _T('"') || c == _T('<') || c == _T('>') || c == _T('|')) {
+			safeName += _T('_');
+		} else {
+			safeName += c;
+		}
+	}
+	TCHAR exePath[MAX_PATH];
+	GetModuleFileName(NULL, exePath, MAX_PATH);
+	PathRemoveFileSpec(exePath);
+	TCHAR tempFile[MAX_PATH];
+	wcscpy_s(tempFile, exePath);
+	PathAppend(tempFile, safeName.c_str());
+	wcscat_s(tempFile, _T(".mhook"));
+	std::ofstream fout;
+	fout.open(tempFile, std::ios::binary);
+	if (!fout.is_open()) return false;
+	fout.write(file.content.data(), file.content.size());
+	fout.close();
 	lastLoadedName = displayName;
 	MHSettings::OpenMHookConfig(hwnd, tempFile);
 	SendDlgItemMessage(hwnd, IDC_EDIT1, WM_SETTEXT, 0, (LPARAM)displayName.c_str());
@@ -128,36 +138,36 @@ void RecentFiles::PopulateDialogList(HWND hDlg, int comboId) {
 		FindClose(hFind);
 	}
 	allFiles.insert(allFiles.end(), embeddedFiles.begin(), embeddedFiles.end());
-	std::set<std::basic_string<TCHAR>> diskFileNames;
-	for (const auto& f : allFiles) {
-		if (!f.isEmbedded) {
-			std::basic_string<TCHAR> nameOnly = f.filename;
-			size_t dotPos = nameOnly.find_last_of(_T('.'));
-			if (dotPos != std::basic_string<TCHAR>::npos) {
-				nameOnly = nameOnly.substr(0, dotPos);
-			}
-			CharUpperBuff(&nameOnly[0], static_cast<DWORD>(nameOnly.length()));
-			diskFileNames.insert(nameOnly);
-		}
-	}
 	std::vector<RecentFileInfo> diskFiles;
 	std::vector<RecentFileInfo> embFiles;
 	for (auto& f : allFiles) {
-		if (!f.isEmbedded) {
-			diskFiles.push_back(f);
-		} else {
-			std::basic_string<TCHAR> nameOnly = f.filename;
-			size_t dotPos = nameOnly.find_last_of(_T('.'));
-			if (dotPos != std::basic_string<TCHAR>::npos) {
-				nameOnly = nameOnly.substr(0, dotPos);
+		if (!f.isEmbedded) diskFiles.push_back(f);
+		else embFiles.push_back(f);
+	}
+	// Фильтруем встроенные файлы - убираем если есть на диске
+	std::set<std::basic_string<TCHAR>> diskNames;
+	for (auto& f : diskFiles) {
+		std::basic_string<TCHAR> nameLower = f.filename;
+		for (size_t i = 0; i < nameLower.length(); i++) {
+			if (nameLower[i] >= _T('A') && nameLower[i] <= _T('Z')) {
+				nameLower[i] = nameLower[i] - _T('A') + _T('a');
 			}
-			CharUpperBuff(&nameOnly[0], static_cast<DWORD>(nameOnly.length()));
-			if (diskFileNames.find(nameOnly) != diskFileNames.end()) {
-				continue;
+		}
+		diskNames.insert(nameLower);
+	}
+	std::vector<RecentFileInfo> filteredEmbFiles;
+	for (auto& f : embFiles) {
+		std::basic_string<TCHAR> nameLower = f.filename;
+		for (size_t i = 0; i < nameLower.length(); i++) {
+			if (nameLower[i] >= _T('A') && nameLower[i] <= _T('Z')) {
+				nameLower[i] = nameLower[i] - _T('A') + _T('a');
 			}
-			embFiles.push_back(f);
+		}
+		if (diskNames.find(nameLower) == diskNames.end()) {
+			filteredEmbFiles.push_back(f);
 		}
 	}
+	embFiles = filteredEmbFiles;
 	std::sort(diskFiles.begin(), diskFiles.end(),
 		[](const RecentFileInfo& a, const RecentFileInfo& b) {
 			return CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
@@ -196,32 +206,26 @@ void RecentFiles::OnDialogFileSelected(HWND hDlg, int comboId, int index) {
 			LoadEmbeddedConfig(hDlg, file);
 		} else {
 			if (GetFileAttributes(file.fullpath.c_str()) != INVALID_FILE_ATTRIBUTES) {
-				lastLoadedName = file.filename;
+				std::basic_string<TCHAR> displayName = file.filename;
+				size_t dotPos = displayName.find_last_of(_T('.'));
+				if (dotPos != std::basic_string<TCHAR>::npos) {
+					displayName = displayName.substr(0, dotPos);
+				}
+				lastLoadedName = displayName;
 				TCHAR exePath[MAX_PATH];
 				GetModuleFileName(NULL, exePath, MAX_PATH);
 				PathRemoveFileSpec(exePath);
 				TCHAR tempFile[MAX_PATH];
 				wcscpy_s(tempFile, exePath);
-				wcscat_s(tempFile, L"~$temp.mhook");
-				DeleteFile(tempFile);
+				PathAppend(tempFile, displayName.c_str());
+				wcscat_s(tempFile, _T(".mhook"));
 				if (CopyFile(file.fullpath.c_str(), tempFile, FALSE)) {
 					MHSettings::OpenMHookConfig(hDlg, tempFile);
-					std::basic_string<TCHAR> displayName = file.filename;
-					size_t dotPos = displayName.find_last_of(_T('.'));
-					if (dotPos != std::basic_string<TCHAR>::npos) {
-						displayName = displayName.substr(0, dotPos);
-					}
 					SendDlgItemMessage(hDlg, IDC_EDIT1, WM_SETTEXT, 0, (LPARAM)displayName.c_str());
 					MHSettings::AfterLoad(hDlg);
 					DeleteFile(tempFile);
 				} else {
 					MHSettings::OpenMHookConfig(hDlg, (TCHAR*)file.fullpath.c_str());
-					std::basic_string<TCHAR> displayName = file.filename;
-					size_t dotPos = displayName.find_last_of(_T('.'));
-					if (dotPos != std::basic_string<TCHAR>::npos) {
-						displayName = displayName.substr(0, dotPos);
-					}
-					SendDlgItemMessage(hDlg, IDC_EDIT1, WM_SETTEXT, 0, (LPARAM)displayName.c_str());
 					MHSettings::AfterLoad(hDlg);
 				}
 			}
@@ -230,45 +234,6 @@ void RecentFiles::OnDialogFileSelected(HWND hDlg, int comboId, int index) {
 }
 bool RecentFiles::FindByWindowTitle(HWND hwnd, TCHAR* title) {
 	LoadEmbeddedFiles();
-	TCHAR exePath[MAX_PATH];
-	GetModuleFileName(NULL, exePath, MAX_PATH);
-	PathRemoveFileSpec(exePath);
-	PathAddBackslash(exePath);
-	std::set<std::basic_string<TCHAR>> diskFileNames;
-	TCHAR searchPattern[MAX_PATH];
-	wcscpy_s(searchPattern, exePath);
-	wcscat_s(searchPattern, _T("*.MHOOK"));
-	WIN32_FIND_DATA fd;
-	HANDLE hFind = FindFirstFile(searchPattern, &fd);
-	if (hFind != INVALID_HANDLE_VALUE) {
-		do {
-			std::basic_string<TCHAR> fname = fd.cFileName;
-			std::basic_string<TCHAR> nameOnly = fname;
-			size_t dotPos = nameOnly.find_last_of(_T('.'));
-			if (dotPos != std::basic_string<TCHAR>::npos) {
-				nameOnly = nameOnly.substr(0, dotPos);
-			}
-			CharUpperBuff(&nameOnly[0], static_cast<DWORD>(nameOnly.length()));
-			diskFileNames.insert(nameOnly);
-		} while (FindNextFile(hFind, &fd));
-		FindClose(hFind);
-	}
-	wcscpy_s(searchPattern, exePath);
-	wcscat_s(searchPattern, _T("*.mhook"));
-	hFind = FindFirstFile(searchPattern, &fd);
-	if (hFind != INVALID_HANDLE_VALUE) {
-		do {
-			std::basic_string<TCHAR> fname = fd.cFileName;
-			std::basic_string<TCHAR> nameOnly = fname;
-			size_t dotPos = nameOnly.find_last_of(_T('.'));
-			if (dotPos != std::basic_string<TCHAR>::npos) {
-				nameOnly = nameOnly.substr(0, dotPos);
-			}
-			CharUpperBuff(&nameOnly[0], static_cast<DWORD>(nameOnly.length()));
-			diskFileNames.insert(nameOnly);
-		} while (FindNextFile(hFind, &fd));
-		FindClose(hFind);
-	}
 	TCHAR titleUpper[256];
 	wcscpy_s(titleUpper, title);
 	TCHAR titleClean[256];
@@ -284,15 +249,6 @@ bool RecentFiles::FindByWindowTitle(HWND hwnd, TCHAR* title) {
 	int bestScore = 0;
 	const RecentFileInfo* bestMatch = nullptr;
 	for (const auto& file : embeddedFiles) {
-		std::basic_string<TCHAR> nameOnly = file.filename;
-		size_t dotPos = nameOnly.find_last_of(_T('.'));
-		if (dotPos != std::basic_string<TCHAR>::npos) {
-			nameOnly = nameOnly.substr(0, dotPos);
-		}
-		CharUpperBuff(&nameOnly[0], static_cast<DWORD>(nameOnly.length()));
-		if (diskFileNames.find(nameOnly) != diskFileNames.end()) {
-			continue;
-		}
 		TCHAR fnameUpper[256];
 		wcscpy_s(fnameUpper, file.filename.c_str());
 		CharUpperBuff(fnameUpper, static_cast<DWORD>(_tcslen(fnameUpper)));
@@ -306,9 +262,15 @@ bool RecentFiles::FindByWindowTitle(HWND hwnd, TCHAR* title) {
 			bestMatch = &file;
 		}
 	}
+	TCHAR exePath[MAX_PATH];
+	GetModuleFileName(NULL, exePath, MAX_PATH);
+	PathRemoveFileSpec(exePath);
+	PathAddBackslash(exePath);
+	TCHAR searchPattern[MAX_PATH];
 	wcscpy_s(searchPattern, exePath);
 	wcscat_s(searchPattern, _T("*.MHOOK"));
-	hFind = FindFirstFile(searchPattern, &fd);
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = FindFirstFile(searchPattern, &fd);
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
 			TCHAR fnameUpper[256];

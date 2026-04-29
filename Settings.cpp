@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <shlwapi.h>
+#include <shellapi.h>
+#pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "shlwapi.lib")
 #include "Settings.h"
 #include "RecentFiles.h"
@@ -61,11 +63,11 @@ bool MHSettings::flag_downall=false; // вниз и вбок = просто вн
 bool MHSettings::flag_skip_fast=false; // Быстрое движение мыши игнорируется
 bool MHSettings::flag_up_immediately=false; // Только что нажатая кнопка должна быть отжата (1 режим)
 bool MHSettings::flag_autoclick_lmb=false; // Автокликер для левой кнопки мыши
-bool MHSettings::flag_autoclick_ahk=false; // Запускать AutoHotkey скрипт
-bool MHSettings::flag_wheel_ahk=false; // Запускать скрипт колесика
-DWORD MHSettings::wheel_ahk_process_id=0; // PID процесса скрипта колесика
-DWORD MHSettings::ahk_process_id=0; // PID процесса AutoHotkey
 int MHSettings::autoclick_speed_index=1; // Индекс скорости автокликера (по умолчанию "Fast")
+bool MHSettings::flag_autoclick_ahk=false; // Запуск AHK скрипта при автоклике
+bool MHSettings::flag_wheel_ahk=false; // Запуск AHK скрипта для колесика
+bool MHSettings::flag_autoclick_ahk_loaded=false;
+bool MHSettings::flag_wheel_ahk_loaded=false;
 bool MHSettings::flag_cursor_visible=false; // Видимый курсор (красная точка)
 int MHSettings::mode=1;
 int MHSettings::mode3axe=0;
@@ -195,10 +197,7 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 				return 1;
 			case IDC_BUTTON_SAVE: // Сохраняем файл
 				MHSettings::BeforeSaveOrStart(hdwnd); // Текущие поля диалога копирует в переменные
-				MHSettings::StartAutoHotkeyScripts();
-				if (MHSettings::SaveMHookConfig(hdwnd) >= 0) {
-					RecentFiles::PopulateDialogList(hdwnd, IDC_LIST_RECENT_FILES);
-				}
+				MHSettings::SaveMHookConfig(hdwnd);
 				return 1;
 			case IDC_CHECK_CURSOR_VISIBLE: // Видимый курсор - показываем/скрываем сразу
 				if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_CURSOR_VISIBLE,BM_GETCHECK, 0, 0))
@@ -231,7 +230,6 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 			case IDOK: 	//Хорошо!
 				// 1. Чувствительность
 				MHSettings::BeforeSaveOrStart(hdwnd);
-				MHSettings::StartAutoHotkeyScripts();
 				ResetEytrackerBuffer();
 				MagicWindow::ForceTopMost();
 				EndDialog(hdwnd,0);
@@ -290,82 +288,71 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 						titleClean[j] = _T('\0');
 						CharUpperBuff(titleClean, static_cast<DWORD>(_tcslen(titleClean)));
 						TCHAR msg[512];
-						bool loaded = false;
-						if (RecentFiles::FindByWindowTitle(hdwnd, titleClean)) {
-							loaded = true;
-						} else {
 							int bestMatchScore = 0;
-							TCHAR bestMatchPath[MAX_PATH] = {0};
-							bool bestMatchIsMHOOK = false;
-							WIN32_FIND_DATA fd;
-							HANDLE hFind = FindFirstFile(searchPattern, &fd);
-							if (hFind != INVALID_HANDLE_VALUE) {
-								do {
-									TCHAR fileNameOrig[256];
-									_tcscpy(fileNameOrig, fd.cFileName);
-									TCHAR* dotPos = _tcsrchr(fd.cFileName, _T('.'));
-									if (dotPos) *dotPos = _T('\0');
-									TCHAR fileClean[256];
-									j = 0;
-									for (int i = 0; fd.cFileName[i]; i++) {
-										if (fd.cFileName[i] < 256 && _istalnum(fd.cFileName[i])) {
-											fileClean[j++] = fd.cFileName[i];
-										}
+						TCHAR bestMatchPath[MAX_PATH] = {0};
+						bool bestMatchIsMHOOK = false;
+						WIN32_FIND_DATA fd;
+						HANDLE hFind = FindFirstFile(searchPattern, &fd);
+						if (hFind != INVALID_HANDLE_VALUE) {
+							do {
+								TCHAR fileNameOrig[256];
+								_tcscpy(fileNameOrig, fd.cFileName);
+								TCHAR* dotPos = _tcsrchr(fd.cFileName, _T('.'));
+								if (dotPos) *dotPos = _T('\0');
+								TCHAR fileClean[256];
+								j = 0;
+								for (int i = 0; fd.cFileName[i]; i++) {
+									if (fd.cFileName[i] < 256 && _istalnum(fd.cFileName[i])) {
+										fileClean[j++] = fd.cFileName[i];
 									}
-									fileClean[j] = _T('\0');
-									CharUpperBuff(fileClean, static_cast<DWORD>(_tcslen(fileClean)));
-									int matchScore = 0;
-if (_tcslen(fileClean) >= 2 && _tcslen(titleClean) >= 2) {
-										if (_tcsstr(fileClean, titleClean) != NULL) {
-											matchScore = static_cast<int>(_tcslen(titleClean)) * 10;
-										} else if (_tcsstr(titleClean, fileClean) != NULL) {
-											matchScore = static_cast<int>(_tcslen(fileClean)) * 10;
-										} else {
-											int minLen = static_cast<int>(_tcslen(titleClean));
-											if (_tcslen(fileClean) >= static_cast<size_t>(minLen) && minLen >= 3) {
-												TCHAR filePrefix[256];
-												_tcsncpy(filePrefix, fileClean, minLen);
-												filePrefix[minLen] = _T('\0');
-												if (_tcscmp(filePrefix, titleClean) == 0) {
-													matchScore = static_cast<int>(_tcslen(titleClean)) * 8;
-												}
+								}
+								fileClean[j] = _T('\0');
+								CharUpperBuff(fileClean, static_cast<DWORD>(_tcslen(fileClean)));
+								int matchScore = 0;
+								if (_tcslen(fileClean) >= 2 && _tcslen(titleClean) >= 2) {
+									if (_tcsstr(fileClean, titleClean) != NULL) {
+										matchScore = static_cast<int>(_tcslen(titleClean)) * 10;
+									} else if (_tcsstr(titleClean, fileClean) != NULL) {
+										matchScore = static_cast<int>(_tcslen(fileClean)) * 10;
+									} else {
+										int minLen = static_cast<int>(_tcslen(titleClean));
+										if (_tcslen(fileClean) >= static_cast<size_t>(minLen) && minLen >= 3) {
+											TCHAR filePrefix[256];
+											_tcsncpy(filePrefix, fileClean, minLen);
+											filePrefix[minLen] = _T('\0');
+											if (_tcscmp(filePrefix, titleClean) == 0) {
+												matchScore = static_cast<int>(_tcslen(titleClean)) * 8;
 											}
 										}
 									}
-									TCHAR extCheck[256];
-									_tcscpy(extCheck, fileNameOrig);
-									bool endsWithMHOOK = false;
-									TCHAR* dotInCheck = _tcsrchr(extCheck, _T('.'));
-									if (dotInCheck && _tcsicmp(dotInCheck, _T(".MHOOK")) == 0) {
-										endsWithMHOOK = true;
-										dotInCheck[0] = _T('\0');
-										TCHAR* prevDot = _tcsrchr(extCheck, _T('.'));
-										if (prevDot && _tcsicmp(prevDot, _T(".MHOO")) == 0) {
-											endsWithMHOOK = false;
-										}
+								}
+								TCHAR extCheck[256];
+								_tcscpy(extCheck, fileNameOrig);
+								bool endsWithMHOOK = false;
+								TCHAR* dotInCheck = _tcsrchr(extCheck, _T('.'));
+								if (dotInCheck && _tcsicmp(dotInCheck, _T(".MHOOK")) == 0) {
+									endsWithMHOOK = true;
+									dotInCheck[0] = _T('\0');
+									TCHAR* prevDot = _tcsrchr(extCheck, _T('.'));
+									if (prevDot && _tcsicmp(prevDot, _T(".MHOO")) == 0) {
+										endsWithMHOOK = false;
 									}
-									TCHAR fullPath[MAX_PATH];
-									_tcscpy(fullPath, exePath);
-									_tcscat(fullPath, fileNameOrig);
-									if (matchScore > bestMatchScore || (matchScore == bestMatchScore && endsWithMHOOK && !bestMatchIsMHOOK)) {
-										bestMatchScore = matchScore;
-										_tcscpy(bestMatchPath, fullPath);
-										bestMatchIsMHOOK = endsWithMHOOK;
-									}
-								} while (FindNextFile(hFind, &fd));
-								FindClose(hFind);
-							}
-							if (bestMatchScore > 0) {
-								MHSettings::OpenMHookConfig(hdwnd, bestMatchPath);
-								loaded = true;
-								TCHAR displayName[MAX_PATH];
-								_tcscpy(displayName, bestMatchPath);
-								TCHAR* dotPos = _tcsrchr(displayName, _T('.'));
-								if (dotPos) *dotPos = _T('\0');
-								TCHAR* backslash = _tcsrchr(displayName, _T('\\'));
-								if (backslash) wcscpy_s(displayName, backslash + 1);
-								RecentFiles::SetLastLoadedName(displayName);
-							}
+								}
+								TCHAR fullPath[MAX_PATH];
+								_tcscpy(fullPath, exePath);
+								_tcscat(fullPath, fileNameOrig);
+								if (matchScore > bestMatchScore || (matchScore == bestMatchScore && endsWithMHOOK && !bestMatchIsMHOOK)) {
+									bestMatchScore = matchScore;
+									_tcscpy(bestMatchPath, fullPath);
+									bestMatchIsMHOOK = endsWithMHOOK;
+								}
+							} while (FindNextFile(hFind, &fd));
+							FindClose(hFind);
+						}
+						bool loaded = false;
+						if (bestMatchScore > 0) {
+							MHSettings::OpenMHookConfig(hdwnd, bestMatchPath);
+							loaded = true;
 						}
 						if (!loaded) {
 							wsprintf(msg, L"Не найдено: %s", windowTitle);
@@ -373,11 +360,8 @@ if (_tcslen(fileClean) >= 2 && _tcslen(titleClean) >= 2) {
 						}
 						if (loaded) {
 							RecentFiles::PopulateDialogList(hdwnd, IDC_LIST_RECENT_FILES);
-							std::basic_string<TCHAR> displayName = RecentFiles::GetLastLoadedName();
-							SendDlgItemMessage(hdwnd, IDC_EDIT1, WM_SETTEXT, 0, (LPARAM)displayName.c_str());
 							MHSettings::AfterLoad(hdwnd);
 							MHSettings::BeforeSaveOrStart(hdwnd);
-							MHSettings::StartAutoHotkeyScripts();
 							ResetEytrackerBuffer();
 							MagicWindow::ForceTopMost();
 							EndDialog(hdwnd, 0);
@@ -607,13 +591,11 @@ void MHSettings::AfterLoad(HWND hdwnd)
 		// 19. автокликер для левой кнопки мыши (отдельный чекбокс)
 		if(MHSettings::flag_autoclick_lmb) SendDlgItemMessage(hdwnd, IDC_CHECK_LMB_AUTOCLICK, BM_SETCHECK, BST_CHECKED, 0);
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_LMB_AUTOCLICK, BM_SETCHECK, BST_UNCHECKED, 0);
-		// 19.1. автокликер AutoHotkey
-		if(MHSettings::flag_autoclick_ahk) SendDlgItemMessage(hdwnd, IDC_CHECK_AUTOCLICK_AHK, BM_SETCHECK, BST_CHECKED, 0);
-		else SendDlgItemMessage(hdwnd, IDC_CHECK_AUTOCLICK_AHK, BM_SETCHECK, BST_UNCHECKED, 0);
-		// 19.2. колесико AutoHotkey
+		SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_SETCURSEL, MHSettings::autoclick_speed_index, 0L);
+		if(MHSettings::flag_autoclick_ahk) SendDlgItemMessage(hdwnd, IDC_CHECK_AHK_AUTOCLICK, BM_SETCHECK, BST_CHECKED, 0);
+		else SendDlgItemMessage(hdwnd, IDC_CHECK_AHK_AUTOCLICK, BM_SETCHECK, BST_UNCHECKED, 0);
 		if(MHSettings::flag_wheel_ahk) SendDlgItemMessage(hdwnd, IDC_CHECK_WHEEL_AHK, BM_SETCHECK, BST_CHECKED, 0);
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_WHEEL_AHK, BM_SETCHECK, BST_UNCHECKED, 0);
-		SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_SETCURSEL, MHSettings::autoclick_speed_index, 0L);
 		// 20. видимый курсор (красная точка)
 		if(MHSettings::flag_cursor_visible) SendDlgItemMessage(hdwnd, IDC_CHECK_CURSOR_VISIBLE, BM_SETCHECK, BST_CHECKED, 0);
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_CURSOR_VISIBLE, BM_SETCHECK, BST_UNCHECKED, 0);
@@ -739,11 +721,6 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 };
 int MHSettings::OpenMHookConfig(HWND hwnd, TCHAR *default_filename)
 {
-	// Сбрасываем AHK при загрузке нового файла
-	MHSettings::flag_autoclick_ahk = false;
-	MHSettings::flag_wheel_ahk = false;
-	MHSettings::ahk_process_id = 0;
-	MHSettings::wheel_ahk_process_id = 0;
 	if(NULL==default_filename)
 	{
 		// выводим диалог
@@ -791,7 +768,7 @@ int MHSettings::OpenMHookConfig(HWND hwnd, TCHAR *default_filename)
 		wcscpy_s(tfiletitle, fileName);
 	}
 	FILE *fin=NULL;
-	_wfopen_s(&fin,tfilename,L"rb");
+	_wfopen_s(&fin,tfilename,L"r");
 	if(NULL==fin)
 	{
 		wcscpy_s(tchar_buf,L"Не могу открыть файл: '");
@@ -862,18 +839,17 @@ int MHSettings::OpenMHookConfig(HWND hwnd, TCHAR *default_filename)
 					goto load_error; // Не умеем обрабатывать
 				}
 				num_succeeded++; // Количество успешно считанных параметров
-				found=true;
+found=true;
 				break; // Не нужно больше сравнивать, выходим из цикла
 			} // если найдена строка
 		} // for
-		if(!found)
-			goto load_error; // наткнулись на неизвестную строку
+		if(!found) {
+			fgets(char_buf,sizeof(char_buf)-1,fin); // Пропускаем строку с неизвестным параметром
+		}
 	}
 	fclose(fin);
 	return 0;
 load_error:
-	swprintf_s(tchar_buf,L"Файл конфигурации прочитан с ошибками.\r\nВозможно, он от другой версии программы.\r\nОднако, число успешно считанных параметров: %d\r\n(Рекомендую сохранить конфигурацию заново)", num_succeeded);
-	MHReportError(tchar_buf,hwnd);
 	fclose(fin);
 	return -1;
 }
@@ -1113,121 +1089,48 @@ void MHSettings::BeforeSaveOrStart(HWND hdwnd)
 			if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_UP_IMMEDIATELY,BM_GETCHECK, 0, 0))
 				MHSettings::flag_up_immediately=true;
 			else MHSettings::flag_up_immediately=false;
-			// 18. игнорировать быстрое движение (режим 3)
-			if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_SKIP_FAST,BM_GETCHECK, 0, 0))
-				MHSettings::flag_skip_fast=true;
-			else MHSettings::flag_skip_fast=false;
-			// 19. автокликер для левой кнопки мыши (отдельный чекбокс)
-			if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_LMB_AUTOCLICK,BM_GETCHECK, 0, 0))
-				MHSettings::flag_autoclick_lmb=true;
-			else MHSettings::flag_autoclick_lmb=false;
-			// 19.1. автокликер AutoHotkey
-			if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_AUTOCLICK_AHK,BM_GETCHECK, 0, 0))
-				MHSettings::flag_autoclick_ahk=true;
-			else MHSettings::flag_autoclick_ahk=false;
-			// 19.2. колесико AutoHotkey
-			if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_WHEEL_AHK,BM_GETCHECK, 0, 0))
-				MHSettings::flag_wheel_ahk=true;
-			else MHSettings::flag_wheel_ahk=false;
-			MHSettings::autoclick_speed_index=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_GETCURSEL, 0, 0L));
-			// Запуск/остановка AutoHotkey скрипта колесика
-			if(MHSettings::flag_wheel_ahk)
-		{
-			if(MHSettings::wheel_ahk_process_id == 0)
-			{
-				TCHAR script_path[MAX_PATH];
-				GetCurrentDirectory(MAX_PATH, script_path);
-				PathAddBackslash(script_path);
-				lstrcat(script_path, _T("Колёсико.ahk"));
-			if(GetFileAttributes(script_path) != INVALID_FILE_ATTRIBUTES)
-			{
-				ShellExecute(NULL, _T("open"), _T("C:\\Programs\\mhook\\Колёсико.ahk"), NULL, NULL, SW_HIDE);
-				MHSettings::wheel_ahk_process_id = 1;
-			}
+		// 18. игнорировать быстрое движение (режим 3)
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_SKIP_FAST,BM_GETCHECK, 0, 0))
+			MHSettings::flag_skip_fast=true;
+		else MHSettings::flag_skip_fast=false;
+		// 19. автокликер для левой кнопки мыши (отдельный чекбокс)
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_LMB_AUTOCLICK,BM_GETCHECK, 0, 0))
+			MHSettings::flag_autoclick_lmb=true;
+		else MHSettings::flag_autoclick_lmb=false;
+		MHSettings::autoclick_speed_index=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_GETCURSEL, 0, 0L));
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_AHK_AUTOCLICK,BM_GETCHECK, 0, 0))
+			MHSettings::flag_autoclick_ahk=true;
+		else MHSettings::flag_autoclick_ahk=false;
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_WHEEL_AHK,BM_GETCHECK, 0, 0))
+			MHSettings::flag_wheel_ahk=true;
+		else MHSettings::flag_wheel_ahk=false;
+		// Запуск AHK скриптов при активации галочек
+		if(MHSettings::flag_autoclick_ahk) {
+			TCHAR exePath[MAX_PATH];
+			GetModuleFileName(NULL, exePath, MAX_PATH);
+			PathRemoveFileSpec(exePath);
+			TCHAR scriptPath[MAX_PATH];
+			wcscpy_s(scriptPath, exePath);
+			PathAppend(scriptPath, _T("Авто клик.exe"));
+			if(PathFileExists(scriptPath)) {
+				ShellExecute(NULL, _T("runas"), scriptPath, NULL, NULL, SW_SHOW);
+				MHSettings::flag_autoclick_ahk_loaded=true;
 			}
 		}
-		else
-		{
-			if(MHSettings::wheel_ahk_process_id != 0)
-			{
-				STARTUPINFO si = {0};
-				PROCESS_INFORMATION pi = {0};
-				si.cb = sizeof(si);
-				TCHAR cmd[MAX_PATH];
-				lstrcpy(cmd, _T("/C taskkill /F /IM AutoHotkey.exe"));
-				CreateProcess(_T("cmd.exe"), cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-				CloseHandle(pi.hProcess);
-				CloseHandle(pi.hThread);
-				MHSettings::wheel_ahk_process_id = 0;
+		if(MHSettings::flag_wheel_ahk) {
+			TCHAR exePath[MAX_PATH];
+			GetModuleFileName(NULL, exePath, MAX_PATH);
+			PathRemoveFileSpec(exePath);
+			TCHAR scriptPath[MAX_PATH];
+			wcscpy_s(scriptPath, exePath);
+			PathAppend(scriptPath, _T("Колёсико.exe"));
+			if(PathFileExists(scriptPath)) {
+				ShellExecute(NULL, _T("runas"), scriptPath, NULL, NULL, SW_SHOW);
+				MHSettings::flag_wheel_ahk_loaded=true;
 			}
 		}
 		// 20. видимый курсор (красная точка)
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_CURSOR_VISIBLE,BM_GETCHECK, 0, 0))
 			MHSettings::flag_cursor_visible=true;
 		else MHSettings::flag_cursor_visible=false;
-}
-void MHSettings::StartAutoHotkeyScripts()
-{
-	// Запуск/остановка AutoHotkey скрипта автокликера
-	if(MHSettings::flag_autoclick_ahk)
-	{
-		if(MHSettings::ahk_process_id == 0)
-		{
-			TCHAR script_path[MAX_PATH];
-			GetCurrentDirectory(MAX_PATH, script_path);
-			PathAddBackslash(script_path);
-			lstrcat(script_path, _T("Авто клик.ahk"));
-			if(GetFileAttributes(script_path) != INVALID_FILE_ATTRIBUTES)
-			{
-				ShellExecute(NULL, _T("open"), _T("C:\\Programs\\mhook\\Авто клик.ahk"), NULL, NULL, SW_HIDE);
-				MHSettings::ahk_process_id = 1;
-			}
-		}
-	}
-	else
-	{
-		if(MHSettings::ahk_process_id != 0)
-		{
-			STARTUPINFO si = {0};
-			PROCESS_INFORMATION pi = {0};
-			si.cb = sizeof(si);
-			TCHAR cmd[MAX_PATH];
-			lstrcpy(cmd, _T("/C taskkill /F /IM AutoHotkey.exe"));
-			CreateProcess(_T("cmd.exe"), cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-			CloseHandle(pi.hProcess);
-			CloseHandle(pi.hThread);
-			MHSettings::ahk_process_id = 0;
-		}
-	}
-	// Запуск/остановка AutoHotkey скрипта колесика
-	if(MHSettings::flag_wheel_ahk)
-	{
-		if(MHSettings::wheel_ahk_process_id == 0)
-		{
-			TCHAR script_path[MAX_PATH];
-			GetCurrentDirectory(MAX_PATH, script_path);
-			PathAddBackslash(script_path);
-			lstrcat(script_path, _T("Колёсико.ahk"));
-			if(GetFileAttributes(script_path) != INVALID_FILE_ATTRIBUTES)
-			{
-				ShellExecute(NULL, _T("open"), _T("C:\\Programs\\mhook\\Колёсико.ahk"), NULL, NULL, SW_HIDE);
-				MHSettings::wheel_ahk_process_id = 1;
-			}
-		}
-	}
-	else
-	{
-		if(MHSettings::wheel_ahk_process_id != 0)
-		{
-			STARTUPINFO si = {0};
-			PROCESS_INFORMATION pi = {0};
-			si.cb = sizeof(si);
-			TCHAR cmd[MAX_PATH];
-			lstrcpy(cmd, _T("/C taskkill /F /IM AutoHotkey.exe"));
-			CreateProcess(_T("cmd.exe"), cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-			CloseHandle(pi.hProcess);
-			CloseHandle(pi.hThread);
-			MHSettings::wheel_ahk_process_id = 0;
-		}
-	}
 }

@@ -9,21 +9,14 @@ for filename in os.listdir(SOURCE_DIR):
     if filename.lower().endswith('.mhook'):
         filepath = os.path.join(SOURCE_DIR, filename)
         if os.path.isfile(filepath):
-            with open(filepath, 'rb') as f:
-                content = f.read()
             stat = os.stat(filepath)
             files.append({
                 'name': filename,
-                'mtime': stat.st_mtime,
-                'content': content
+                'mtime': stat.st_mtime
             })
 
+# Сортировка по дате (новые первые)
 files.sort(key=lambda x: -x['mtime'])
-first_50 = files[:50]
-rest = files[50:]
-first_50.sort(key=lambda x: x['name'].lower())
-rest.sort(key=lambda x: x['name'].lower())
-files = first_50 + rest
 
 print(f"Found {len(files)} .mhook files")
 
@@ -33,13 +26,9 @@ with open(OUTPUT_FILE, 'wb') as f:
     for file_info in files:
         name_bytes = file_info['name'].encode('utf-16-le')
         name_len = len(name_bytes) // 2
-        content = file_info['content']
         
         f.write(struct.pack('I', name_len))
         f.write(name_bytes)
         f.write(struct.pack('Q', int(file_info['mtime'] * 10000000)))
-        f.write(struct.pack('I', len(content)))
-        f.write(content)
 
 print(f"Created {OUTPUT_FILE} with {len(files)} files")
-print(f"Total size: {os.path.getsize(OUTPUT_FILE)} bytes")

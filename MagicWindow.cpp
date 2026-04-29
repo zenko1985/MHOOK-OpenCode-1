@@ -76,29 +76,29 @@ RECT MagicWindow::adjust_rect={0}; // корректировка размеро�
 MagicWindow MagicWindow::magic_wnd[NUM_MAGIC_WINDOWS]=
 {
 	{0,0,0,L"Окно 1",0,300,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{1,0,0,L"Окно 2",1,600,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{2,0,0,L"Окно 3",2,900,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{3,0,0,L"Окно 4",3,1200,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{1,0,0,L"Окно 2",1,550,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{2,0,0,L"Окно 3",2,800,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{3,0,0,L"Окно 4",3,1050,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
 	{4,0,0,L"Окно 5",0,300,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{5,0,0,L"Окно 6",1,600,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{6,0,0,L"Окно 7",2,900,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{7,0,0,L"Окно 8",3,1200,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{5,0,0,L"Окно 6",1,550,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{6,0,0,L"Окно 7",2,800,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{7,0,0,L"Окно 8",3,1050,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
 	{8,0,0,L"Окно 9",0,300,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{9,0,0,L"Окно 10",1,600,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{10,0,0,L"Окно 11",2,900,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{11,0,0,L"Окно 12",3,1200,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{9,0,0,L"Окно 10",1,550,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{10,0,0,L"Окно 11",2,800,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{11,0,0,L"Окно 12",3,1050,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
 	{12,0,0,L"Окно 13",0,300,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{13,0,0,L"Окно 14",1,600,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{14,0,0,L"Окно 15",2,900,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{15,0,0,L"Окно 16",3,1200,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{16,0,0,L"Окно 17",0,1350,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{17,0,0,L"Окно 18",1,1650,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{18,0,0,L"Окно 19",0,1350,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{19,0,0,L"Окно 20",1,1650,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{20,0,0,L"Окно 21",0,1350,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{21,0,0,L"Окно 22",1,1650,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{23,0,0,L"Окно 23",0,1350,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{24,0,0,L"Окно 24",1,1650,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}} // e
+	{13,0,0,L"Окно 14",1,550,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{14,0,0,L"Окно 15",2,800,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{15,0,0,L"Окно 16",3,1050,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{16,0,0,L"Окно 17",0,1300,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{17,0,0,L"Окно 18",1,1550,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{18,0,0,L"Окно 19",0,1300,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{19,0,0,L"Окно 20",1,1550,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{20,0,0,L"Окно 21",0,1300,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{21,0,0,L"Окно 22",1,1550,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
+	{23,0,0,L"Окно 23",0,1300,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
+	{24,0,0,L"Окно 24",1,1550,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}} // e
 };
 //static TRACKMOUSEEVENT tme={sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT};
 //======================================================================
