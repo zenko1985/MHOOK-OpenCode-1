@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <shlwapi.h>
-#include <shellapi.h>
-#pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "shlwapi.lib")
 #include "Settings.h"
 #include "RecentFiles.h"
@@ -64,10 +62,6 @@ bool MHSettings::flag_skip_fast=false; // Быстрое движение мыш
 bool MHSettings::flag_up_immediately=false; // Только что нажатая кнопка должна быть отжата (1 режим)
 bool MHSettings::flag_autoclick_lmb=false; // Автокликер для левой кнопки мыши
 int MHSettings::autoclick_speed_index=1; // Индекс скорости автокликера (по умолчанию "Fast")
-bool MHSettings::flag_autoclick_ahk=false; // Запуск AHK скрипта при автоклике
-bool MHSettings::flag_wheel_ahk=false; // Запуск AHK скрипта для колесика
-bool MHSettings::flag_autoclick_ahk_loaded=false;
-bool MHSettings::flag_wheel_ahk_loaded=false;
 bool MHSettings::flag_cursor_visible=false; // Видимый курсор (красная точка)
 int MHSettings::mode=1;
 int MHSettings::mode3axe=0;
@@ -592,10 +586,6 @@ void MHSettings::AfterLoad(HWND hdwnd)
 		if(MHSettings::flag_autoclick_lmb) SendDlgItemMessage(hdwnd, IDC_CHECK_LMB_AUTOCLICK, BM_SETCHECK, BST_CHECKED, 0);
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_LMB_AUTOCLICK, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_SETCURSEL, MHSettings::autoclick_speed_index, 0L);
-		if(MHSettings::flag_autoclick_ahk) SendDlgItemMessage(hdwnd, IDC_CHECK_AHK_AUTOCLICK, BM_SETCHECK, BST_CHECKED, 0);
-		else SendDlgItemMessage(hdwnd, IDC_CHECK_AHK_AUTOCLICK, BM_SETCHECK, BST_UNCHECKED, 0);
-		if(MHSettings::flag_wheel_ahk) SendDlgItemMessage(hdwnd, IDC_CHECK_WHEEL_AHK, BM_SETCHECK, BST_CHECKED, 0);
-		else SendDlgItemMessage(hdwnd, IDC_CHECK_WHEEL_AHK, BM_SETCHECK, BST_UNCHECKED, 0);
 		// 20. видимый курсор (красная точка)
 		if(MHSettings::flag_cursor_visible) SendDlgItemMessage(hdwnd, IDC_CHECK_CURSOR_VISIBLE, BM_SETCHECK, BST_CHECKED, 0);
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_CURSOR_VISIBLE, BM_SETCHECK, BST_UNCHECKED, 0);
@@ -664,7 +654,7 @@ typedef struct
 	void *check_pointer;
 	int max_index;
 } T_save_struct;
-#define NUM_SAVE_LINES 47
+#define NUM_SAVE_LINES 45
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
 	{"Sensitivity",save_int,&dlg_current_sensitivity,save_int,&dlg_sensitivity, MH_NUM_SENSITIVITY},
@@ -715,9 +705,7 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"MagicWindows", save_MagicWindows, 0,save_empty,0,0},//39 - сохраняет ВСЕ MagicWindows одним махом
 	{"NoMoveRightMB", save_bool, &MHSettings::flag_no_move_right_mb,save_empty,0,0},//40
 	{"AutoclickLMB", save_bool, &MHSettings::flag_autoclick_lmb,save_empty,0,0},//41
-	{"AutoclickSpeed", save_int, &MHSettings::autoclick_speed_index,save_empty,0,4},//42
-	{"AutoclickAHK", save_bool, &MHSettings::flag_autoclick_ahk,save_empty,0,0},//43
-	{"WheelAHK", save_bool, &MHSettings::flag_wheel_ahk,save_empty,0,0}//44
+	{"AutoclickSpeed", save_int, &MHSettings::autoclick_speed_index,save_empty,0,4}//42
 };
 int MHSettings::OpenMHookConfig(HWND hwnd, TCHAR *default_filename)
 {
@@ -839,17 +827,18 @@ int MHSettings::OpenMHookConfig(HWND hwnd, TCHAR *default_filename)
 					goto load_error; // Не умеем обрабатывать
 				}
 				num_succeeded++; // Количество успешно считанных параметров
-found=true;
+				found=true;
 				break; // Не нужно больше сравнивать, выходим из цикла
 			} // если найдена строка
 		} // for
-		if(!found) {
-			fgets(char_buf,sizeof(char_buf)-1,fin); // Пропускаем строку с неизвестным параметром
-		}
+		if(!found)
+			goto load_error; // наткнулись на неизвестную строку
 	}
 	fclose(fin);
 	return 0;
 load_error:
+	swprintf_s(tchar_buf,L"Файл конфигурации прочитан с ошибками.\r\nВозможно, он от другой версии программы.\r\nОднако, число успешно считанных параметров: %d\r\n(Рекомендую сохранить конфигурацию заново)", num_succeeded);
+	MHReportError(tchar_buf,hwnd);
 	fclose(fin);
 	return -1;
 }
@@ -1098,37 +1087,6 @@ void MHSettings::BeforeSaveOrStart(HWND hdwnd)
 			MHSettings::flag_autoclick_lmb=true;
 		else MHSettings::flag_autoclick_lmb=false;
 		MHSettings::autoclick_speed_index=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_AUTOCLICK_SPEED, CB_GETCURSEL, 0, 0L));
-		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_AHK_AUTOCLICK,BM_GETCHECK, 0, 0))
-			MHSettings::flag_autoclick_ahk=true;
-		else MHSettings::flag_autoclick_ahk=false;
-		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_WHEEL_AHK,BM_GETCHECK, 0, 0))
-			MHSettings::flag_wheel_ahk=true;
-		else MHSettings::flag_wheel_ahk=false;
-		// Запуск AHK скриптов при активации галочек
-		if(MHSettings::flag_autoclick_ahk) {
-			TCHAR exePath[MAX_PATH];
-			GetModuleFileName(NULL, exePath, MAX_PATH);
-			PathRemoveFileSpec(exePath);
-			TCHAR scriptPath[MAX_PATH];
-			wcscpy_s(scriptPath, exePath);
-			PathAppend(scriptPath, _T("Авто клик.exe"));
-			if(PathFileExists(scriptPath)) {
-				ShellExecute(NULL, _T("runas"), scriptPath, NULL, NULL, SW_SHOW);
-				MHSettings::flag_autoclick_ahk_loaded=true;
-			}
-		}
-		if(MHSettings::flag_wheel_ahk) {
-			TCHAR exePath[MAX_PATH];
-			GetModuleFileName(NULL, exePath, MAX_PATH);
-			PathRemoveFileSpec(exePath);
-			TCHAR scriptPath[MAX_PATH];
-			wcscpy_s(scriptPath, exePath);
-			PathAppend(scriptPath, _T("Колёсико.exe"));
-			if(PathFileExists(scriptPath)) {
-				ShellExecute(NULL, _T("runas"), scriptPath, NULL, NULL, SW_SHOW);
-				MHSettings::flag_wheel_ahk_loaded=true;
-			}
-		}
 		// 20. видимый курсор (красная точка)
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_CURSOR_VISIBLE,BM_GETCHECK, 0, 0))
 			MHSettings::flag_cursor_visible=true;

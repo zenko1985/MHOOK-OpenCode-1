@@ -1,9 +1,4 @@
 ﻿#include <Windows.h>
-#include <tchar.h>
-#include <shellapi.h>
-#include <shlwapi.h>
-#pragma comment(lib, "shell32.lib")
-#pragma comment(lib, "shlwapi.lib")
 #include "MHKeypad.h"
 #include "Settings.h"
 #include "CursorDot.h"
@@ -61,7 +56,7 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 				else if((pMouseStruct->pt.x+pMouseStruct->pt.y>(screen_x_real-1)+(screen_y_real-1)-5)&&
 					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.y<screen_y_real))// Правый нижний угол (но не на втором экране)
 				{
-					// Запускаем таймер, только если пришли снаружи!!!
+					// Запускаем таймер, только если пришли в угол снаружи!!!
 					if(1!=top_position) SetTimer(MHhwnd,2,MHSettings::timeout_mouse_switch,NULL);
 					//top_position=0; // Пока дублируем левый верхний угол
 					top_position=1;
@@ -164,8 +159,8 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 				flag_scroll_started=false;
 				return 1;
 #endif
-case WM_RBUTTONUP:
-			right_button_down=false;
+			case WM_RBUTTONUP:
+				right_button_down=false;
 			// для отрисовки красных квадратиков
 			InvalidateRect(MHhwnd,NULL,TRUE);
 				// Возможно, мы ждали отпускания мыши после двойного щелчка

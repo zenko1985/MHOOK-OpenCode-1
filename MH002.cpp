@@ -2,8 +2,6 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
-#include <shellapi.h>
-#include <tlhelp32.h>
 #pragma comment(lib, "shlwapi.lib")
 #include "Bitmap.h"
 #include "Settings.h"
@@ -92,32 +90,6 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 					if(MHSettings::hh) MHSettings::hh->TopLeftCornerTimer();
 					break;
 				case 1:
-				{
-					// Выгружаем AHK скрипты перед открытием диалога настроек
-					HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-					if(hSnap != INVALID_HANDLE_VALUE) {
-						PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
-						if(Process32First(hSnap, &pe)) {
-							do {
-								if(MHSettings::flag_autoclick_ahk && MHSettings::flag_autoclick_ahk_loaded) {
-									if(_tcsicmp(pe.szExeFile, _T("Авто клик.exe")) == 0) {
-										MHSettings::flag_autoclick_ahk_loaded=false;
-										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
-										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
-									}
-								}
-								if(MHSettings::flag_wheel_ahk && MHSettings::flag_wheel_ahk_loaded) {
-									if(_tcsicmp(pe.szExeFile, _T("Колёсико.exe")) == 0 || _tcsicmp(pe.szExeFile, _T("Колесико.exe")) == 0) {
-										MHSettings::flag_wheel_ahk_loaded=false;
-										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
-										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
-									}
-								}
-							} while(Process32Next(hSnap, &pe));
-						}
-						CloseHandle(hSnap);
-					}
-				}
 					// Теперь смена позиция происходит только по выезду мыши из области!
 					//top_position=-1;
 					// Скрываем красную точку перед открытием диалога настроек

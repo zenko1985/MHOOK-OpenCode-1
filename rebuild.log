@@ -1,0 +1,33 @@
+Перестроение начато в 19:46...
+1>------ Перестроение всех файлов начато: проект: MHook64, Конфигурация: Release x64 ------
+1>  Bitmap.cpp
+1>  CircleWindow.cpp
+1>  CursorDot.cpp
+1>  hh1.cpp
+1>  hh1a.cpp
+1>  hh2.cpp
+1>  hh3.cpp
+1>  hh4.cpp
+1>  hh5.cpp
+1>  hh6.cpp
+1>  HookHandler.cpp
+1>  HookProc.cpp
+1>  MagicWindow.cpp
+1>  MH001.cpp
+1>  MH002.cpp
+1>  MHKeypad.cpp
+1>  MHRepErr.cpp
+1>  MVector.cpp
+1>  OnGazeData.cpp
+1>  Settings.cpp
+1>  Создание кода...
+1>  Компиляция...
+1>  Settings2.cpp
+1>  TET.cpp
+1>  TobiiREX.cpp
+1>  RecentFiles.cpp
+1>  Создание кода...
+1>  MHook64.vcxproj -> C:\Programs\mhook\source mhook\x64\Release\MHook64.exe
+========== Перестроить все: успешно - 1, неудачно - 0, пропущено - 0 ==========
+========== Перестроить завершено в 19:46 и заняло 17,109 с ==========
+

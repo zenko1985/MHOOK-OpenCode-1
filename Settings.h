@@ -25,10 +25,6 @@ public:
 		flag_downall, flag_skip_fast, flag_up_immediately;
 	static bool flag_autoclick_lmb;
 	static int autoclick_speed_index;
-	static bool flag_autoclick_ahk;
-	static bool flag_wheel_ahk;
-	static bool flag_autoclick_ahk_loaded;
-	static bool flag_wheel_ahk_loaded;
 	static bool flag_cursor_visible;
 	static int mode,mode3axe;
 	static int circle_scale_factor;

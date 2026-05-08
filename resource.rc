@@ -78,7 +78,7 @@ BEGIN
                     "Button",BS_AUTORADIOBUTTON,17,320,369,10
     CONTROL         "Режим 5 (8 умений)",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,450,255,86,10
     CONTROL         "Режим 6: только прокрутка и вправо-влево при удержании нажатыми ДВУХ кнопок мыши",IDC_RADIO6,
-                    "Button",BS_AUTORADIOBUTTON | BS_MULTILINE,455,306,229,20
+                    "Button",BS_AUTORADIOBUTTON | BS_MULTILINE,455,316,229,20
     CONTROL         "Режим 7: только окна",IDC_RADIO7,"Button",BS_AUTORADIOBUTTON | BS_MULTILINE,455,340,92,12
     LTEXT           "Движения мыши выбирают клавишу для нажатия, но реально она нажимается вместе с правой кнопкой мыши",IDC_STATIC,30,258,380,8
     CONTROL         "Движения мыши при нажатой правой кнопке меняют нажатую клавишу",IDC_M2_CHECK1,
@@ -121,15 +121,15 @@ BEGIN
     CONTROL         "включить ДВЕ альтернативные раскладки в режиме 1 (нажать правую кнопку и вправо для вкл/выкл первой альтернативной, нажать и влево для вкл/выкл второй альтернативной) [террария]",IDC_CHECK_2ALT,
                     "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,459,211,225,39
     PUSHBUTTON      "WASD",IDC_BUTTON_WASD,411,14,34,14
+    COMBOBOX        IDC_UP3,529,141,72,123,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_LEFT3,473,165,74,169,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_RIGHT3,581,165,73,135,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_DOWN3,529,191,72,152,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "ПРАВАЯ нажимает 1:",IDC_CHECK_RIGHT_MB_ISKEY,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,15,138,84,24
     CONTROL         "автоклик левой при отпускании правой",IDC_CHECK_AUTOCLICK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,350,156,158,10
-    CONTROL         "Автокликер Угол",IDC_CHECK_LMB_AUTOCLICK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,351,128,77,10
-    CONTROL         "AHK кликер",IDC_CHECK_AHK_AUTOCLICK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,351,114,60,10
-    CONTROL         "AHK Колесико",IDC_CHECK_WHEEL_AHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,457,327,75,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,351,145,158,10
+    COMBOBOX        IDC_AUTOCLICK_SPEED,428,127,67,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Автокликер ЛКМ",IDC_CHECK_LMB_AUTOCLICK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,351,128,77,10
     CONTROL         "Видимый курсор",IDC_CHECK_CURSOR_VISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,391,368,68,10
     COMBOBOX        IDC_CIRCLE_SCALES,594,280,85,152,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Крутить колесо - чувствительность",IDC_STATIC,456,282,131,8
@@ -501,14 +501,6 @@ END
 
 IDR_EMBEDDEDSETTINGS    RCDATA                  "EmbeddedSettings.bin"
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RT_MANIFEST
-//
-
-1                       RT_MANIFEST             "app.manifest"
-
 #endif    // Русский (Россия) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -523,4 +515,10 @@ IDR_EMBEDDEDSETTINGS    RCDATA                  "EmbeddedSettings.bin"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
+///////////////////////////////////////////////////////////////////////////
+//
+// manifest - DPI Awareness for Windows 10/11
+//
+1 RT_MANIFEST "app.manifest"
 
