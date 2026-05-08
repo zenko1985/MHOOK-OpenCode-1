@@ -13,5 +13,6 @@ protected:
 	static HWND DotHwnd;
 	static bool is_visible;
 	static POINT last_mouse_pos;
+	static DWORD last_update_time;
 	static LRESULT CALLBACK DotWndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPARAM lparam);
 };

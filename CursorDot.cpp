@@ -5,6 +5,7 @@
 HWND CursorDot::DotHwnd = NULL;
 bool CursorDot::is_visible = false;
 POINT CursorDot::last_mouse_pos = {0, 0};
+DWORD CursorDot::last_update_time = 0;
 static bool class_registered = false;
 extern HINSTANCE MHInst;
 extern HWND MHhwnd;
@@ -88,16 +89,16 @@ void CursorDot::Hide()
 void CursorDot::UpdatePosition()
 {
 	if (!is_visible || DotHwnd == NULL) return;
-	// Проверяем что окно все еще существует
+	DWORD now = timeGetTime();
+	if (now - last_update_time < 16) return;
+	last_update_time = now;
 	if (!IsWindow(DotHwnd))
 	{
 		DotHwnd = NULL;
 		is_visible = false;
 		return;
 	}
-	// Получение позиции мыши
 	GetCursorPos(&last_mouse_pos);
-	// Позиционирование окна
 	SetWindowPos(
 		DotHwnd,
 		HWND_TOPMOST,
@@ -105,7 +106,7 @@ void CursorDot::UpdatePosition()
 		last_mouse_pos.y - DOT_SIZE/2,
 		DOT_SIZE,
 		DOT_SIZE,
-		SWP_NOACTIVATE | SWP_NOSIZE
+		SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER
 	);
 }
 LRESULT CALLBACK CursorDot::DotWndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPARAM lparam)

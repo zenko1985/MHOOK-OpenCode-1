@@ -8,7 +8,7 @@
 extern bool flag_magic_left_click; // Клик мыши произведён волшебным окном, не отключать его в HookProc,
 extern HWND		MHhwnd; // Нужна для установки таймера
 extern LONG screen_x_real, screen_y_real; // Для определения углов экрана
-extern bool flag_inside_window; // Определён в оконной процедуре, показывает, что мы внутри окна
+extern bool flag_inside_window;
 bool flag_scroll_started=false;
 bool flag_stop_mouse=false;
 bool flag_left_button_key=false;
@@ -16,12 +16,9 @@ bool flag_stop_emulation=false;
 bool flag_left_button_waits=false;
 bool flag_right_button_waits=false;
 static DWORD last_right_down_time;
-//static DWORD last_screen_top_time;
-int top_position=-1; // 0 - левый верхний угол, 1- правый верхний угол, -1 - убрали
-//static bool mid_button_down=false;
+int top_position=-1;
 bool right_button_down=false;
 bool left_button_down=false;
-// для отладки
 LONG debug_x, debug_y;
 //====================================================================================
 // Собственно, хук
@@ -37,33 +34,24 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 			switch(wParam)
 			{
 			case WM_MOUSEMOVE:
-				// для отладки
 				debug_x=pMouseStruct->pt.x;
 				debug_y=pMouseStruct->pt.y;
-				// Обновляем позицию видимого курсора (красной точки) при каждом движении мыши
 				if(MHSettings::flag_cursor_visible)
 					CursorDot::UpdatePosition();
-				//if(pMouseStruct->pt.x+pMouseStruct->pt.y<5) // А находимся ли мы в верхнем левом углу экрана?
 				if((pMouseStruct->pt.y-pMouseStruct->pt.x>(screen_y_real-1)-5)&&
-					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.y<screen_y_real)) // А находимся ли мы в нижнем левом углу экрана? (но не на втором экране)
+					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.y<screen_y_real))
 				{
-					// Запускаем таймер, только если пришли в угол снаружи!!!
-					if(0!=top_position) SetTimer(MHhwnd,2,MHSettings::timeout_mouse_switch,NULL); //
+					if(0!=top_position) SetTimer(MHhwnd,2,MHSettings::timeout_mouse_switch,NULL);
 					top_position=0;
-					// это ваще не надо last_screen_top_time=timeGetTime();
 				}
-				//else if(pMouseStruct->pt.x-pMouseStruct->pt.y>screen_x-5) // Правый верхний угол
 				else if((pMouseStruct->pt.x+pMouseStruct->pt.y>(screen_x_real-1)+(screen_y_real-1)-5)&&
-					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.y<screen_y_real))// Правый нижний угол (но не на втором экране)
+					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.y<screen_y_real))
 				{
-					// Запускаем таймер, только если пришли в угол снаружи!!!
-					if(1!=top_position) SetTimer(MHhwnd,2,MHSettings::timeout_mouse_switch,NULL);
-					//top_position=0; // Пока дублируем левый верхний угол
+if(1!=top_position) SetTimer(MHhwnd,2,MHSettings::timeout_mouse_switch,NULL);
 					top_position=1;
 				}
 				else if((top_position!=-1)&&(pMouseStruct->pt.y<screen_y_real)&&(pMouseStruct->pt.y>=0)&&
-					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.x>=0)) // Ждали окончания сигнала таймера, но уехали из угла
-					// не рассматриваем выход за границы экрана
+					(pMouseStruct->pt.x<screen_x_real)&&(pMouseStruct->pt.x>=0))
 				{
 					KillTimer(MHhwnd,2);
 					top_position=-1;

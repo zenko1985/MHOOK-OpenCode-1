@@ -62,12 +62,11 @@ void MHookHandler::OnLDown()
 			int speed_ms = autoclick_speeds[MHSettings::autoclick_speed_index];
 			SetTimer(MHhwnd, 6, speed_ms, NULL);
 		}
-		//if(MHSettings::flag_left_mb_push_twice) MHKeypad::Press4(5,false); // Это если мы при отпускании мыши жмём клавишу ещё раз
-		if(MHSettings::flag_left_mb_push_twice)
-		{
-			SetTimer(MHhwnd,3,MHSettings::timeout_mouse_click,NULL); // Это если мы при отпускании мыши жмём клавишу ещё раз
-			flag_left_button_waits=true;
-		}
+	}
+	if(MHSettings::flag_left_mb_push_twice)
+	{
+		SetTimer(MHhwnd,3,MHSettings::timeout_mouse_click,NULL);
+		flag_left_button_waits=true;
 	}
 }
 void MHookHandler::OnLUp()
