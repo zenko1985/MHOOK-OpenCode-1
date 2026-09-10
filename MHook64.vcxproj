@@ -137,7 +137,12 @@
       <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AllowIsolation>true</AllowIsolation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <CETCompat>true</CETCompat>
     </Link>
+    <ClCompile>
+      <GuardCheck>GuardFastFail</GuardCheck>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -165,6 +170,9 @@
     <ClInclude Include="TobiiREX.h" />
     <ClInclude Include="WM_USER_messages.h" />
     <ClInclude Include="RecentFiles.h" />
+    <ClInclude Include="miniz.h" />
+    <ClInclude Include="Localization.h" />
+    <ClInclude Include="EmbeddedExe.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bitmap.cpp" />
@@ -191,6 +199,11 @@
     <ClCompile Include="TET.cpp" />
     <ClCompile Include="TobiiREX.cpp" />
     <ClCompile Include="RecentFiles.cpp" />
+    <ClCompile Include="Localization.cpp" />
+    <ClCompile Include="EmbeddedExe.cpp" />
+    <ClCompile Include="miniz.c">
+      <PreprocessorDefinitions>MINIZ_NO_ARCHIVE_APIS;MINIZ_NO_STDIO%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\bitmap1.bmp" />
@@ -204,6 +217,8 @@
     <Image Include="bm8wred.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Авто клик.ahk" />
+    <None Include="..\Колёсико.ahk" />
     <None Include="app.manifest" />
     <None Include="EmbeddedSettings.bin" />
   </ItemGroup>

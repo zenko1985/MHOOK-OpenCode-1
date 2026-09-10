@@ -2,8 +2,9 @@
 // Включаемый файл, созданный в Microsoft Visual C++.
 // Используется resource.rc
 //
+#define IDR_EMBEDDEDSETTINGS            2
+#define IDR_RECENTFILES_CACHE           3
 #define IDD_DIALOG_SETTINGS             101
-#define IDC_STATIC                      -1
 #define IDB_BITMAP8                     106
 #define IDB_BITMAP4                     107
 #define IDD_DIALOG_SETTINGS2            108
@@ -26,7 +27,6 @@
 #define IDC_EDIT1                       1019
 #define IDC_SWITCH_TIMEOUT              1020
 #define IDC_EDIT_WX1                    1020
-#define IDC_M2_CHECK1                   1021
 #define IDC_EDIT_WY1                    1021
 #define IDC_TIMEOUT                     1022
 #define IDC_EDIT_WWIDTH1                1022
@@ -120,43 +120,17 @@
 #define IDC_EDIT_WY18                   1099
 #define IDC_EDIT_WWIDTH18               1100
 #define IDC_EDIT_WHEIGHT18              1101
-#define IDC_EDIT_WX19                   1102
-#define IDC_EDIT_WY19                   1103
-#define IDC_EDIT_WWIDTH19               1104
-#define IDC_EDIT_WHEIGHT19              1105
-#define IDC_EDIT_WX20                   1106
-#define IDC_EDIT_WY20                   1107
-#define IDC_EDIT_WWIDTH20               1108
-#define IDC_EDIT_WHEIGHT20              1109
-#define IDC_EDIT_WX21                   1110
-#define IDC_EDIT_WY21                   1111
-#define IDC_EDIT_WWIDTH21               1112
-#define IDC_EDIT_WHEIGHT21              1113
-#define IDC_EDIT_WX22                   1114
-#define IDC_EDIT_WY22                   1115
-#define IDC_EDIT_WWIDTH22               1116
-#define IDC_EDIT_WHEIGHT22              1117
-#define IDC_EDIT_WX23                   1118
-#define IDC_EDIT_WY23                   1119
-#define IDC_EDIT_WWIDTH23               1120
-#define IDC_EDIT_WHEIGHT23              1121
-#define IDC_EDIT_WX24                   1122
-#define IDC_EDIT_WY24                   1123
-#define IDC_EDIT_WWIDTH24               1124
-#define IDC_EDIT_WHEIGHT24              1125
+#define IDC_COMBO1                      1126
 #define IDC_BUTTON_DOPLNITELNO          1300
 #define IDC_CIRCLE_SCALES               1301
-#define IDC_UP3                         1310
-#define IDC_RIGHT3                      1311
-#define IDC_DOWN3                       1312
-#define IDC_LEFT3                       1313
+
 #define IDC_BUTTON6_1                   1380
 #define IDC_BUTTON_WASD                 1400
 #define IDC_RADIO5                      1401
 #define IDC_RADIO6                      1402
 #define IDC_RADIO7                      1403
 #define IDC_CHECK_RIGHT_MB_ISKEY        1404
-#define IDC_CHECK_2ALT                  1405
+
 #define IDC_COMBO_WKEY1                 1500
 #define IDC_COMBO_WKEY2                 1501
 #define IDC_COMBO_WKEY3                 1502
@@ -175,12 +149,6 @@
 #define IDC_COMBO_WKEY16                1515
 #define IDC_COMBO_WKEY17                1516
 #define IDC_COMBO_WKEY18                1517
-#define IDC_COMBO_WKEY19                1518
-#define IDC_COMBO_WKEY20                1519
-#define IDC_COMBO_WKEY21                1520
-#define IDC_COMBO_WKEY22                1521
-#define IDC_COMBO_WKEY23                1522
-#define IDC_COMBO_WKEY24                1523
 #define IDC_EDIT_WNAME1                 1524
 #define IDC_EDIT_WNAME2                 1525
 #define IDC_EDIT_WNAME3                 1526
@@ -199,12 +167,6 @@
 #define IDC_EDIT_WNAME16                1539
 #define IDC_EDIT_WNAME17                1540
 #define IDC_EDIT_WNAME18                1541
-#define IDC_EDIT_WNAME19                1542
-#define IDC_EDIT_WNAME20                1543
-#define IDC_EDIT_WNAME21                1544
-#define IDC_EDIT_WNAME22                1545
-#define IDC_EDIT_WNAME23                1546
-#define IDC_EDIT_WNAME24                1547
 #define IDC_CHECK_WWISIBLE1             1548
 #define IDC_CHECK_WWISIBLE2             1549
 #define IDC_CHECK_WWISIBLE3             1550
@@ -223,12 +185,6 @@
 #define IDC_CHECK_WWISIBLE16            1563
 #define IDC_CHECK_WWISIBLE17            1564
 #define IDC_CHECK_WWISIBLE18            1565
-#define IDC_CHECK_WWISIBLE19            1566
-#define IDC_CHECK_WWISIBLE20            1567
-#define IDC_CHECK_WWISIBLE21            1568
-#define IDC_CHECK_WWISIBLE22            1569
-#define IDC_CHECK_WWISIBLE23            1570
-#define IDC_CHECK_WWISIBLE24            1571
 #define IDC_COMBO_WSENS1                1572
 #define IDC_COMBO_WSENS2                1573
 #define IDC_COMBO_WSENS3                1574
@@ -247,12 +203,6 @@
 #define IDC_COMBO_WSENS16               1587
 #define IDC_COMBO_WSENS17               1588
 #define IDC_COMBO_WSENS18               1589
-#define IDC_COMBO_WSENS19               1590
-#define IDC_COMBO_WSENS20               1591
-#define IDC_COMBO_WSENS21               1592
-#define IDC_COMBO_WSENS22               1593
-#define IDC_COMBO_WSENS23               1594
-#define IDC_COMBO_WSENS24               1595
 #define IDC_COMBO_WCOLOR1               1596
 #define IDC_COMBO_WCOLOR2               1597
 #define IDC_COMBO_WCOLOR3               1598
@@ -271,12 +221,6 @@
 #define IDC_COMBO_WCOLOR16              1611
 #define IDC_COMBO_WCOLOR17              1612
 #define IDC_COMBO_WCOLOR18              1613
-#define IDC_COMBO_WCOLOR19              1614
-#define IDC_COMBO_WCOLOR20              1615
-#define IDC_COMBO_WCOLOR21              1616
-#define IDC_COMBO_WCOLOR22              1617
-#define IDC_COMBO_WCOLOR23              1618
-#define IDC_COMBO_WCOLOR24              1619
 #define IDC_COMBO_WREPEAT1              1620
 #define IDC_COMBO_WREPEAT2              1621
 #define IDC_COMBO_WREPEAT3              1622
@@ -295,12 +239,6 @@
 #define IDC_COMBO_WREPEAT16             1635
 #define IDC_COMBO_WREPEAT17             1636
 #define IDC_COMBO_WREPEAT18             1637
-#define IDC_COMBO_WREPEAT19             1638
-#define IDC_COMBO_WREPEAT20             1639
-#define IDC_COMBO_WREPEAT21             1640
-#define IDC_COMBO_WREPEAT22             1641
-#define IDC_COMBO_WREPEAT23             1642
-#define IDC_COMBO_WREPEAT24             1643
 #define IDC_COMBO_WGROUP1               1644
 #define IDC_COMBO_WGROUP2               1645
 #define IDC_COMBO_WGROUP3               1646
@@ -319,12 +257,6 @@
 #define IDC_COMBO_WGROUP16              1659
 #define IDC_COMBO_WGROUP17              1660
 #define IDC_COMBO_WGROUP18              1661
-#define IDC_COMBO_WGROUP19              1662
-#define IDC_COMBO_WGROUP20              1663
-#define IDC_COMBO_WGROUP21              1664
-#define IDC_COMBO_WGROUP22              1665
-#define IDC_COMBO_WGROUP23              1666
-#define IDC_COMBO_WGROUP24              1667
 #define IDC_EYETRACKER_CONNECT          1668
 #define IDC_COMBO_EYETRACKER            1669
 #define IDC_CHECK_EYECIRCLE             1670
@@ -332,10 +264,65 @@
 #define IDC_CHECK_AUTOCLICK             1700
 #define IDC_AUTOCLICK_SPEED             1701
 #define IDC_CHECK_LMB_AUTOCLICK         1702
-#define IDC_LIST_RECENT_FILES           1703
-#define IDC_BUTTON_LOAD_BY_WINDOW       1704
-#define IDR_EMBEDDEDSETTINGS            2
-#define IDR_RECENTFILES_CACHE           3
+#define IDC_CHECK_AHK_AUTOCLICK         1703
+#define IDC_CHECK_WHEEL_AHK             1704
+#define IDC_CHECK_LMB_WIN_AHK           1707
+#define IDC_CHECK_LMB_ESC               1708
+#define IDC_LIST_RECENT_FILES           1705
+#define IDC_BUTTON_LOAD_BY_WINDOW       1706
+#define IDC_GROUP_GAMEPAD               1800
+#define IDC_CHECK_GAMEPAD_ENABLED       1801
+#define IDC_GAMEPAD_A                   1802
+#define IDC_GAMEPAD_B                   1803
+#define IDC_GAMEPAD_X                   1804
+#define IDC_GAMEPAD_Y                   1805
+#define IDC_GAMEPAD_LB                  1806
+#define IDC_GAMEPAD_RB                  1807
+#define IDC_GAMEPAD_LTHUMB              1808
+#define IDC_GAMEPAD_RTHUMB              1809
+#define IDC_GAMEPAD_START               1810
+#define IDC_GAMEPAD_BACK                1811
+#define IDC_GAMEPAD_DPAD_UP             1812
+#define IDC_GAMEPAD_DPAD_DOWN           1813
+#define IDC_GAMEPAD_DPAD_LEFT           1814
+#define IDC_GAMEPAD_DPAD_RIGHT          1815
+
+// Localization control IDs for Dialog 1
+#define IDC_LBL_SENSITIVITY             1900
+#define IDC_LBL_UP                      1901
+#define IDC_LBL_LEFT                    1902
+#define IDC_LBL_RIGHT                   1903
+#define IDC_LBL_DOWN                    1904
+#define IDC_LBL_DIRS                    1905
+#define IDC_LBL_TIMEOUT_LABEL           1906
+#define IDC_LBL_FAST_SPEED              1907
+#define IDC_LBL_LEFT_CORNER             1908
+#define IDC_LBL_SECONDS                 1909
+#define IDC_LBL_LEFT_WORKS              1910
+#define IDC_LBL_DEAD_LR                 1911
+#define IDC_LBL_DEAD_UD                 1912
+#define IDC_LBL_MODE3                   1913
+#define IDC_LBL_WHEEL_SENS              1914
+#define IDC_LBL_2                       1915
+#define IDC_LBL_2B                      1928
+#define IDC_GRP_MOUSE                   1916
+#define IDC_GRP_RIGHT                   1917
+#define IDC_BTN_LANG                    1918
+#define IDC_MODE5_DESC                  1919
+
+// Localization control IDs for Dialog 2
+#define IDC_LBL_WTEXT                   1920
+#define IDC_LBL_SENSOR                  1921
+#define IDC_LBL_COLOR                   1922
+#define IDC_LBL_COORDS                  1923
+#define IDC_LBL_SIZE                    1924
+#define IDC_LBL_KEY                     1925
+#define IDC_LBL_MODE                    1926
+#define IDC_LBL_TRACKER                 1927
+
+// Embedded AHK executables
+#define IDR_AHK_AUTOCLICK               200
+#define IDR_AHK_WHEEL                   201
 
 // Next default values for new objects
 // 
@@ -343,7 +330,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        115
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1126
+#define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

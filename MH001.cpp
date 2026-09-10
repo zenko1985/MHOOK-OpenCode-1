@@ -1,5 +1,6 @@
 ﻿#include <Windows.h>
 //#include <stdio.h>
+#include "GDIHelpers.h"
 #include "Bitmap.h"
 //#include "MVector.h"
 #include "Settings.h"
@@ -8,15 +9,30 @@
 #include "CircleWindow.h"
 #include "TET.h"
 #include "TobiiREX.h"
+#include "Localization.h"
 #define MH_WINDOW_SIZE 200
+// Watchdog для WH_MOUSE_LL: Windows 11 24H2 может тихо снять хук при превышении таймаута
+// Проверяем каждые 5 секунд и перевстанавливаем при необходимости
+#define MH_HOOK_WATCHDOG_TIMER 9
+#define MH_HOOK_WATCHDOG_INTERVAL 5000
 //char debug_buf[4096];
 // Глобальные переменные, которые могут потребоваться везде
-TCHAR*		MHAppName=L"Из мыши в клавиатуру V2 28.07";
+TCHAR*		MHAppName=L"MHook V2";
 HINSTANCE	MHInst;
 HWND		MHhwnd=NULL;
-HBRUSH green_brush, yellow_brush, red_brush, blue_brush, brushes[4];
-HPEN green_pen;
-HFONT hfont;
+GdiBrush g_green_brush(CreateSolidBrush(RGB(100,255,100)));
+GdiBrush g_yellow_brush(CreateSolidBrush(RGB(227,198,2)));
+GdiBrush g_red_brush(CreateSolidBrush(RGB(234,36,36)));
+GdiBrush g_blue_brush(CreateSolidBrush(RGB(36,36,234)));
+HBRUSH green_brush = g_green_brush.get(), yellow_brush = g_yellow_brush.get(),
+       red_brush = g_red_brush.get(), blue_brush = g_blue_brush.get();
+HBRUSH brushes[4] = {green_brush, yellow_brush, red_brush, blue_brush};
+GdiPen g_green_pen(CreatePen(PS_SOLID,4,RGB(100,255,100)));
+HPEN green_pen = g_green_pen.get();
+GdiFont g_hfont(CreateFont( -32, 0, 0, 0, FW_BOLD, 0, 0, 0,
+    RUSSIAN_CHARSET,
+    0, 0, 0, 0, L"Arial"));
+HFONT hfont = g_hfont.get();
 short xsize,ysize; // Размер окна
 LONG screen_x, screen_y, screen_x_real, screen_y_real;
 double screen_scale=1.0;
@@ -39,16 +55,39 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	MSG msg; // Сообщение
 	TCHAR *MHWindowCName=L"MHook20";
 	RECT rect={0,0,MH_WINDOW_SIZE,MH_WINDOW_SIZE};
-	// DPI Awareness для Windows 10/11
-	typedef HRESULT(WINAPI* SetProcessDpiAwarenessFunc)(int);
-	HMODULE hShcore = LoadLibraryW(L"Shcore.dll");
-	if (hShcore) {
-		SetProcessDpiAwarenessFunc pSetProcessDpiAwareness =
-			(SetProcessDpiAwarenessFunc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-		if (pSetProcessDpiAwareness) {
-			pSetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE
+	// Hardened DLL search order to prevent DLL hijacking (Windows 11 24H2)
+	typedef BOOL (WINAPI* SetDefaultDllDirectoriesFunc)(DWORD);
+	HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+	if(hKernel32) {
+		SetDefaultDllDirectoriesFunc pSetDefaultDllDirs = (SetDefaultDllDirectoriesFunc)GetProcAddress(hKernel32, "SetDefaultDllDirectories");
+		if(pSetDefaultDllDirs) {
+			pSetDefaultDllDirs(LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 		}
-		FreeLibrary(hShcore);
+	}
+	// DPI Awareness: пробуем современный API (Win10 1607+), fallback на legacy
+	// SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) — Win10 1703+
+	typedef BOOL (WINAPI* SetProcessDpiAwarenessContextFunc)(DPI_AWARENESS_CONTEXT);
+	SetProcessDpiAwarenessContextFunc pSetDpiCtx =
+		(SetProcessDpiAwarenessContextFunc)GetProcAddress(hKernel32, "SetProcessDpiAwarenessContext");
+	if(pSetDpiCtx) {
+		// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
+		// Включает PerMonitorV2 +自動 scaling للôkна с мигрированными children
+		if(!pSetDpiCtx((DPI_AWARENESS_CONTEXT)-4)) {
+			// Если V2 не поддерживается — пробуем PerMonitor (V1)
+			pSetDpiCtx((DPI_AWARENESS_CONTEXT)-3);
+		}
+	} else {
+		// Fallback: legacy API для Win8.1/10 до 1607
+		typedef HRESULT(WINAPI* SetProcessDpiAwarenessFunc)(int);
+		HMODULE hShcore = LoadLibraryW(L"Shcore.dll");
+		if (hShcore) {
+			SetProcessDpiAwarenessFunc pSetProcessDpiAwareness =
+				(SetProcessDpiAwarenessFunc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
+			if (pSetProcessDpiAwareness) {
+				pSetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE
+			}
+			FreeLibrary(hShcore);
+		}
 	}
 	// Делаем hInst доступной для всех
 	MHInst=hInst;
@@ -61,25 +100,14 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
 	screen_x_real=dm.dmPelsWidth;
 	screen_y_real=dm.dmPelsHeight;
-	screen_scale=((double)screen_x)/dm.dmPelsWidth;
-	// Кисти
-	green_brush=CreateSolidBrush(RGB(100,255,100));
-	yellow_brush=CreateSolidBrush(RGB(227,198,2));
-	red_brush=CreateSolidBrush(RGB(234,36,36));
-	blue_brush=CreateSolidBrush(RGB(36,36,234));
-	brushes[0]=green_brush;
-	brushes[1]=yellow_brush;
-	brushes[2]=red_brush;
-	brushes[3]=blue_brush;
-	hfont=CreateFont( -32, 0, 0, 0, FW_BOLD, 0, 0, 0,
-		RUSSIAN_CHARSET,
-		0, 0, 0, 0, L"Arial");
-		// Кисти
-	green_pen=CreatePen(PS_SOLID,4,RGB(100,255,100)); // зелёная
+	screen_scale = dm.dmPelsWidth > 0 ? ((double)screen_x)/dm.dmPelsWidth : 1.0;
 	// Создаём окно с кружком
 	CircleWindow::Init();
 	// С самого начала пытаемся загрузить конфигурацию по умолчанию
 	MHSettings::OpenMHookConfig(NULL,L"default.MHOOK");
+	// Синхронизируем язык
+	MHLanguage = MHSettings::language;
+	// Note: AfterLoad is called from SettingsDialogue -> WM_INITDIALOG
 	// Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, WndProc, 0, 0, hInst,
                           //LoadIcon( hInst, MAKEINTRESOURCE(IDI_ICON1)),
@@ -132,11 +160,13 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	if(MHSettings::SettingsDialogue(MHhwnd)) return -1;
 	// Разворачиваем окно mhook
 	ShowWindow( MHhwnd, SW_SHOWNORMAL );
-	// Инициализируем работу хука (LL хук для Windows 10/11)
+	// Инициализируем работу хука (LL хук для Windows 10/11/24H2)
 	handle = SetWindowsHookExW(WH_MOUSE_LL,
 									HookProc,
                                   GetModuleHandle(NULL),
                                   NULL);
+	// Запускаем watchdog для автовосстановления хука (Windows 11 24H2 может тихо снять его)
+	SetTimer(MHhwnd, MH_HOOK_WATCHDOG_TIMER, MH_HOOK_WATCHDOG_INTERVAL, NULL);
 	//Цикл обработки сообщений
 	while(GetMessage(&msg,NULL,0,0))
     {
@@ -156,14 +186,5 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	MHBitmap::Halt();
 	// Отпускаем нажатые кнопки волшебных окон
 	MagicWindow::Hide();
-	// Кисти
-	DeleteObject(green_brush);
-	DeleteObject(yellow_brush);
-	DeleteObject(red_brush);
-	DeleteObject(blue_brush);
-	// Фонт
-	DeleteObject(hfont);
-	// pen
-	DeleteObject(green_pen);
 	return 0;
 }

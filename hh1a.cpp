@@ -25,8 +25,7 @@ int MHookHandler1a::OnMouseMove(LONG _x, LONG _y)
 			// если не изменилось -  важно, чтобы с момента последнего нажатия прошло достаточно времени
 			if((0<=position)||(time_now-last_time>MHSettings::time_between_pushes))
 			{
-				MHKeypad::Press(position_mem,true);
-				MHKeypad::Press(position_mem,false);
+				MHKeypad::Tap(position_mem);
 				last_time=time_now;
 			}
 		}
@@ -34,10 +33,7 @@ int MHookHandler1a::OnMouseMove(LONG _x, LONG _y)
 	if(!initialized) initialized=true;
 	last_x=_x;
 	last_y=_y;
-	if(last_x<0) last_x=0;
-	if(last_y<0) last_y=0;
-	if(last_x>=screen_x) last_x=screen_x-1;
-	if(last_y>=screen_y) last_y=screen_y-1;
+	ClampToScreen(last_x, last_y, screen_x, screen_y);
 	return 0; // Новая директива ВЦСПС
 }
 bool MHookHandler1a::OnRDown()

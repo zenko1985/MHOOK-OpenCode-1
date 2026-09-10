@@ -3,6 +3,7 @@
 #include "MVector.h"
 #include "MHKeypad.h"
 #include "Settings.h"
+#include "WM_USER_messages.h"
 extern LONG screen_x_real, screen_y_real;
 extern HWND	MHhwnd;
 extern bool flag_stop_mouse; // Останавливаем мышь, только начав дрег внутри окна !!!
@@ -18,7 +19,7 @@ void MHookHandler6::OnTimer()
 	MHKeypad::Press(position_mem,false);
 	MHVector::Reset(); // Вот это обязательно, иначе в том же направлении мышь не нажмёт клавишу
 	// Почему-то Reset не включает перерисовку
-	InvalidateRect(MHhwnd,NULL,TRUE);
+	ThrottledInvalidate();
 	position_mem=-1;
 }
 //========================================================================
@@ -71,10 +72,7 @@ void MHookHandler6::OnMouseScroll(LONG _x, LONG _y)
 		last_x=_x;
 		last_y=_y;
 	}
-	if(last_x<0) last_x=0;
-	if(last_y<0) last_y=0;
-	if(last_x>=screen_x_real) last_x=screen_x_real-1;
-	if(last_y>=screen_y_real) last_y=screen_y_real-1;
+	ClampToScreen(last_x, last_y, screen_x_real, screen_y_real);
 }
 //======================================================================================================
 // Здесь используется только для того, чтобы сохранялся режим initialized (не терять dx, dy)
@@ -84,10 +82,7 @@ int MHookHandler6::OnMouseMove(LONG _x, LONG _y)
 	if(!initialized) initialized=true;
 	last_x=_x;
 	last_y=_y;
-	if(last_x<0) last_x=0;
-	if(last_y<0) last_y=0;
-	if(last_x>=screen_x_real) last_x=screen_x_real-1;
-	if(last_y>=screen_y_real) last_y=screen_y_real-1;
+	ClampToScreen(last_x, last_y, screen_x_real, screen_y_real);
 	return 0; // Новая директива ВЦСПС
 }
 bool MHookHandler6::OnRDown()

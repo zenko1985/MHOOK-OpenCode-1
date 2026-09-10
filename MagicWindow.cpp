@@ -1,16 +1,38 @@
 ﻿#include <Windows.h>
+#include <tchar.h>
 #include "MagicWindow.h"
 #include "MHRepErr.h"
 #include "Settings.h"
 // Недокументированный SetWindowBand для обхода проблем с панелью задач (StartAllBack)
+// Windows 11 24H2: UIPI ужесточён — SetWindowBand может вернуть ACCESS_DENIED
+// если вызывать из процесса с неподходящим integrity level
 typedef BOOL (WINAPI *SetWindowBand_t)(HWND hwnd, HWND hwndInsertAfter, DWORD dwBand);
 static SetWindowBand_t g_SetWindowBand = NULL;
 static BOOL g_SetWindowBandInitialized = FALSE;
+// Определение версии Windows для адаптации поведения
+static DWORD g_dwWindowsBuildNumber = 0;
+static void DetectWindowsVersion()
+{
+	static BOOL detected = FALSE;
+	if(detected) return;
+	// Работает на всех версиях Windows без deprecated API
+	HKEY hKey;
+	if(RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+		L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+		0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+		DWORD cbData = sizeof(g_dwWindowsBuildNumber);
+		RegQueryValueExW(hKey, L"CurrentBuildNumber", NULL, NULL,
+			(LPBYTE)&g_dwWindowsBuildNumber, &cbData);
+		RegCloseKey(hKey);
+	}
+	detected = TRUE;
+}
 // Инициализация SetWindowBand
 static void InitSetWindowBand()
 {
 	if(!g_SetWindowBandInitialized)
 	{
+		DetectWindowsVersion();
 		HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
 		if(hUser32)
 		{
@@ -27,32 +49,13 @@ bool timer5_needed=false;
 //======================================================================
 void MagicWindow::ClickToActivate()
 {
-	// НЕ используем физический клик мышью, т.к. это вызывает WM_MOUSEHOVER
-	// и зажимает переключатели. Вместо этого используем AttachThreadInput.
 	int i;
 	for(i = 0; i < NUM_MAGIC_WINDOWS; i++)
 	{
 		if(magic_wnd[i].active && magic_wnd[i].MWhwnd && IsWindowVisible(magic_wnd[i].MWhwnd))
 		{
-			// Получаем текущий поток и поток окна
-			DWORD dwCurrentThread = GetCurrentThreadId();
-			DWORD dwWindowThread = GetWindowThreadProcessId(magic_wnd[i].MWhwnd, NULL);
-			// Прикрепляем потоки чтобы обойти ограничения SetForegroundWindow
-			if(dwCurrentThread != dwWindowThread)
-			{
-				AttachThreadInput(dwWindowThread, dwCurrentThread, TRUE);
-			}
-			// Активируем окно
-			SetActiveWindow(magic_wnd[i].MWhwnd);
-			SetForegroundWindow(magic_wnd[i].MWhwnd);
-			BringWindowToTop(magic_wnd[i].MWhwnd);
-			// Открепляем потоки
-			if(dwCurrentThread != dwWindowThread)
-			{
-				AttachThreadInput(dwWindowThread, dwCurrentThread, FALSE);
-			}
-			// Небольшая задержка
-			Sleep(5);
+			SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
+				SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 		}
 	}
 }
@@ -92,13 +95,7 @@ MagicWindow MagicWindow::magic_wnd[NUM_MAGIC_WINDOWS]=
 	{14,0,0,L"Окно 15",2,800,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
 	{15,0,0,L"Окно 16",3,1050,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
 	{16,0,0,L"Окно 17",0,1300,100,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{17,0,0,L"Окно 18",1,1550,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{18,0,0,L"Окно 19",0,1300,350,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{19,0,0,L"Окно 20",1,1550,350,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{20,0,0,L"Окно 21",0,1300,600,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{21,0,0,L"Окно 22",1,1550,600,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // e
-	{23,0,0,L"Окно 23",0,1300,850,200,200,0,0,21,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}}, // q
-	{24,0,0,L"Окно 24",1,1550,850,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}} // e
+	{17,0,0,L"Окно 18",1,1550,100,200,200,0,0,9,0,false,false,0,{sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT}} // e
 };
 //static TRACKMOUSEEVENT tme={sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT};
 //======================================================================
@@ -164,6 +161,7 @@ LRESULT CALLBACK MHMagicWndProc(HWND hwnd,
 			break;
 		//case WM_ERASEBKGND:
 		case WM_PAINT:
+			{
 			PAINTSTRUCT ps;
 			HDC hdc;
 			RECT rect;
@@ -175,15 +173,12 @@ LRESULT CALLBACK MHMagicWndProc(HWND hwnd,
 			FillRect(hdc,&rect,brushes[mw->mw_color]);
 			old_font=(HFONT)SelectObject(hdc, hfont);
 			text_y=(rect.bottom-rect.top)/2-20;
-			//if(text_y<10)
-			TextOut(hdc, 20, text_y, mw->mw_name, static_cast<int>(wcslen(mw->mw_name)));
-			// Возвращаем старый фонт
+			int name_len = (int)_tcslen(mw->mw_name);
+			TextOut(hdc, 20, text_y, mw->mw_name, name_len);
 			SelectObject(hdc, old_font);
-			//MoveToEx(hdc,100,100,NULL);
-			//LineTo(hdc,49,49);
 			EndPaint(hwnd,&ps);
-			//return 1; // ВЫЯСНИТЬ!!!
 			break;
+			}
 		// Пара событий, по которым мы определяем, находится ли мышь над окном
 		case WM_MOUSEMOVE:
 			mw=(MagicWindow *)GetWindowLongPtr(hwnd,GWLP_USERDATA);
@@ -243,40 +238,32 @@ LRESULT CALLBACK MHMagicWndProc(HWND hwnd,
 //======================================================================
 // Принудительно выводит магические окна поверх всех (для StartAllBack)
 // Использует недокументированный SetWindowBand API
+// Windows 11 24H2: добавлен fallback через SetWindowPos + SWP_NOSENDCHANGING
 //======================================================================
 void MagicWindow::ForceTopMost()
 {
 	InitSetWindowBand();
-	// Константы для SetWindowBand
-	const DWORD ZBID_SYSTEM_TOOLS = 12; // Окна поверх всего (системные инструменты)
 	int i;
 	for(i = 0; i < NUM_MAGIC_WINDOWS; i++)
 	{
 		if(magic_wnd[i].active && magic_wnd[i].MWhwnd)
 		{
-			// Используем SetWindowBand если доступен (Windows 8+)
+			// Пробуем SetWindowBand (ZBID_SYSTEM_TOOLS = 12)
+			// На Windows 11 24H2 может вернуть ERROR_ACCESS_DENIED если UIPI блокирует
 			if(g_SetWindowBand)
 			{
-				g_SetWindowBand(magic_wnd[i].MWhwnd, HWND_TOPMOST, ZBID_SYSTEM_TOOLS);
+				BOOL bandResult = g_SetWindowBand(magic_wnd[i].MWhwnd, HWND_TOPMOST, 12);
+				// Если SetWindowBand не сработал — используем обычный SetWindowPos
+				// Это fallback для случаев когда UIPI блокирует недокументированный API
+				if(!bandResult) {
+					SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
+						SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
+				}
 			}
-			// Получаем текущий поток и поток окна
-			DWORD dwCurrentThread = GetCurrentThreadId();
-			DWORD dwWindowThread = GetWindowThreadProcessId(magic_wnd[i].MWhwnd, NULL);
-			// Прикрепляем потоки чтобы обойти ограничения SetForegroundWindow
-			if(dwCurrentThread != dwWindowThread)
+			else
 			{
-				AttachThreadInput(dwWindowThread, dwCurrentThread, TRUE);
-			}
-		// Активируем окно всеми способами
-			SetActiveWindow(magic_wnd[i].MWhwnd);
-			SetForegroundWindow(magic_wnd[i].MWhwnd);
-			BringWindowToTop(magic_wnd[i].MWhwnd);
-			SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
-				SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-			// Открепляем потоки
-			if(dwCurrentThread != dwWindowThread)
-			{
-				AttachThreadInput(dwWindowThread, dwCurrentThread, FALSE);
+				SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
+					SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 			}
 		}
 	}
@@ -432,7 +419,7 @@ void MagicWindow::ShowRuntime()
 				g_SetWindowBand(magic_wnd[i].MWhwnd, HWND_TOPMOST, ZBID_SYSTEM_TOOLS);
 			}
 			// Есть ли среди активных окон такие, которым нужен Timer 5
-			if((dlg_scancodes[magic_wnd[i].button_index].value==0xE102)||
+			if(magic_wnd[i].button_index >= 0 && magic_wnd[i].button_index < MH_NUM_SCANCODES_EXTRA &&
 				(dlg_scancodes[magic_wnd[i].button_index].value==0xE103)||
 				(dlg_scancodes[magic_wnd[i].button_index].value==0xE104)||
 				(dlg_scancodes[magic_wnd[i].button_index].value==0xE105))
@@ -447,6 +434,7 @@ void MagicWindow::ShowRuntime()
 //======================================================================
 void MagicWindow::Press()
 {
+	if(button_index < 0 || button_index >= MH_NUM_SCANCODES_EXTRA) return;
 	BYTE lobyte=LOBYTE(dlg_scancodes[button_index].value),hibyte=HIBYTE(dlg_scancodes[button_index].value);
 	if(pressed) pressed=false;
 	else pressed=true;
@@ -482,12 +470,10 @@ void MagicWindow::PressSpecial(BYTE operation)
 		if(false==pressed) return; // Щелкаем только при вхождении, а не при выходе
 		// 1.0. Этот щелчок HookProc должен пропустить!
 		flag_magic_left_click=true;
-		// 1.01
-		 SetActiveWindow(MWhwnd);
-		 Sleep(500);
 		// 1.1. убираем окно
+		SetActiveWindow(MWhwnd);
 		ShowWindow( MWhwnd, SW_HIDE );
-		// 1.2. Двигаем и щелкаем мышью
+		// 1.2. Двигаем и щелкаем мышью + F12 одним батчем
 		INPUT input[5]={0};
 		input[0].type=INPUT_MOUSE;
 		input[0].mi.dx=(x+width/2)*65535/(screen_x-1);
@@ -495,22 +481,18 @@ void MagicWindow::PressSpecial(BYTE operation)
 		input[0].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
 		input[1].type=INPUT_MOUSE;
 		input[1].mi.dwFlags = MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTDOWN;
-		input[0].mi.dx=(x+width/2)*65535/(screen_x-1);
-		input[0].mi.dy=(y+height/2)*65535/(screen_y-1);
 		input[2].type=INPUT_MOUSE;
-		input[2].mi.dwFlags = MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
 		input[2].mi.dx=(x+width/2)*65535/(screen_x-1);
 		input[2].mi.dy=(y+height/2)*65535/(screen_y-1);
+		input[2].mi.dwFlags = MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
 		input[3].type=INPUT_KEYBOARD;
 		input[3].ki.dwFlags = KEYEVENTF_SCANCODE;
 		input[3].ki.wScan=0x58;
 		input[4].type=INPUT_KEYBOARD;
-		input[4].ki.dwFlags = KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP;;
+		input[4].ki.dwFlags = KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP;
 		input[4].ki.wScan=0x58;
-		SendInput(3,input,sizeof(INPUT));
-		Sleep(100);
-		SendInput(2,&input[3],sizeof(INPUT));
-		Sleep(100);
+		// Батчинг: все 5 операций одним вызовом
+		SendInput(5,input,sizeof(INPUT));
 		// 1.3. показываем окно
 		ShowWindow( MWhwnd, SW_SHOWNORMAL );
 		flag_ignore_mouse_move=1;  // При спрятывании и появлении окна генерируется ложное mouse_move
@@ -550,39 +532,47 @@ void MagicWindow::OnTimer5()
 		topmost_counter = 0;
 		for(int i = 0; i < NUM_MAGIC_WINDOWS; i++)
 		{
-			if(magic_wnd[i].active && magic_wnd[i].MWhwnd)
-			{
+			if(!magic_wnd[i].active || !magic_wnd[i].MWhwnd) continue;
+			// Периодически перевыставляем SetWindowBand (Windows 11 24H2 может сбрасывать)
+			if(g_SetWindowBand) {
+				BOOL bandResult = g_SetWindowBand(magic_wnd[i].MWhwnd, HWND_TOPMOST, 12);
+				if(!bandResult) {
+					SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
+						SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
+				}
+			} else {
 				SetWindowPos(magic_wnd[i].MWhwnd, HWND_TOPMOST, 0, 0, 0, 0,
 					SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 			}
 		}
 	}
+	// Батчинг: двигаем мышь и крутим колесо одним SendInput
+	INPUT inputs[2];
+	int count = 0;
 	if((0!=mouse_auto_x_direction)||(0!=mouse_auto_y_direction))
 	{
-		INPUT input={0};
-		input.type=INPUT_MOUSE;
-		input.mi.dx=mouse_auto_x_direction*bfbc2_mspeed;
-		input.mi.dy=mouse_auto_y_direction*bfbc2_mspeed;
-		input.mi.mouseData=0; // Нужно для всяких колёс прокрутки
-		//input.mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
-		input.mi.dwFlags=MOUSEEVENTF_MOVE;
-		input.mi.time=0;
-		input.mi.dwExtraInfo=0;
-		SendInput(1,&input,sizeof(INPUT));
+		inputs[count].type=INPUT_MOUSE;
+		inputs[count].mi.dx=mouse_auto_x_direction*bfbc2_mspeed;
+		inputs[count].mi.dy=mouse_auto_y_direction*bfbc2_mspeed;
+		inputs[count].mi.mouseData=0;
+		inputs[count].mi.dwFlags=MOUSEEVENTF_MOVE;
+		inputs[count].mi.time=0;
+		inputs[count].mi.dwExtraInfo=0;
+		count++;
 	}
 	if(0!=mouse_auto_w_direction)
 	{
-		INPUT input={0};
 #ifdef _DEBUG
-			OutputDebugString(L"scroll-");
+		OutputDebugString(L"scroll-");
 #endif
-		input.type=INPUT_MOUSE;
-		input.mi.dx=0L;
-		input.mi.dy=0L;
-		input.mi.mouseData=mouse_auto_w_direction*wheel_mspeed;
-		input.mi.dwFlags=MOUSEEVENTF_WHEEL;
-		input.mi.time=0;
-		input.mi.dwExtraInfo=0;
-		SendInput(1,&input,sizeof(INPUT));
+		inputs[count].type=INPUT_MOUSE;
+		inputs[count].mi.dx=0L;
+		inputs[count].mi.dy=0L;
+		inputs[count].mi.mouseData=mouse_auto_w_direction*wheel_mspeed;
+		inputs[count].mi.dwFlags=MOUSEEVENTF_WHEEL;
+		inputs[count].mi.time=0;
+		inputs[count].mi.dwExtraInfo=0;
+		count++;
 	}
+	if(count > 0) SendInput(count, inputs, sizeof(INPUT));
 }

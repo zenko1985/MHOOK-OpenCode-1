@@ -1,10 +1,18 @@
-﻿#include <Windows.h>
+﻿// Windows 11 24H2: winsock.h устарел, используем winsock2.h
+// WIN32_LEAN_AND_MEAN исключает winsock.h из windows.h
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <stdio.h>
 #include <process.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mmsystem.h> // timeGetTime
+#include <atomic>
 #include "TET.h"
 #include "MHRepErr.h"
 #include "TobiiREX.h"
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "winmm.lib")
 // Прототип callback-функции из OnGazeData.cpp
 void on_gaze_data(toit_gaze_data* gazedata, void *user_data);
 bool BKBTET::initialized(false);
@@ -28,14 +36,14 @@ char *JSON_frame_true="{\"category\":\"tracker\",\"request\":\"get\",\"statuscod
 				 ",\"y\":%f},\"pcenter\":{\"x\":%f,\"y\":%f},\"psize\":%f,\"raw\":{\"x\":%f"\
 				 ",\"y\":%f}},\"state\":%d,\"time\":%d}}}";
 SOCKET TETSocket;
-volatile bool flag_ShutDownThreads=false; // flag to inform the threads to terminate
+static std::atomic<bool> flag_ShutDownThreads{false}; // flag to inform the threads to terminate
 uintptr_t handler_HeartBeat=0, handler_Reader=0; // thread handlers
 //==================================================
 // HeartBeat thread - sends a message once a second
 //==================================================
 unsigned __stdcall HeartBeatThread(void *p)
 {
-	while(!flag_ShutDownThreads)
+	while(!flag_ShutDownThreads.load(std::memory_order_relaxed))
 	{
 		if(SOCKET_ERROR==send(TETSocket,JSON_heart_beat,static_cast<int>(strlen(JSON_heart_beat)),0)) return 0; // Connection closed
 		Sleep(1000);
@@ -56,10 +64,11 @@ unsigned __stdcall ReaderThread(void *p)
 		x_raw, y_raw,
 		right_x_avg, right_y_avg, right_pcenter_x, right_pcenter_y, right_psize, right_x_raw, right_y_raw;
 	int state, tet_time, fix;
-	while(!flag_ShutDownThreads)
+	while(!flag_ShutDownThreads.load(std::memory_order_relaxed))
 	{
 		bytesReceived = recv(TETSocket, buffer, 4095, 0);
 		if(0>=bytesReceived) return 0; // Connection closed
+		if(bytesReceived >= 4096) bytesReceived = 4095;
 		buffer[bytesReceived]=0; // Make a string zero-terminated
 		// First try. Template string contains "fix:false"
 		fix=0;
@@ -85,10 +94,11 @@ unsigned __stdcall ReaderThread(void *p)
 		if(20==num_scanned)
 		{
 			//printf("X:%f Y:%f fix:%d state:%d\n",x_avg,y_avg,fix,state);
-			if(7==state)
+			if(7==state && x_avg >= 0.0f && x_avg <= 1.0f && y_avg >= 0.0f && y_avg <= 1.0f && screen_x > 0 && screen_y > 0)
 			{
 				// Содрано из AirMouse.cpp
 				toit_gaze_data gd;
+				memset(&gd, 0, sizeof(gd));
 				POINT p;
 				p.x=(LONG)(x_avg+0.5f); p.y=(LONG)(y_avg+0.5f);;
 				//if(7==state) gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
@@ -99,7 +109,7 @@ unsigned __stdcall ReaderThread(void *p)
 				gd.left.bingo.y=p.y/(double)screen_y*screen_scale;
 				gd.right.bingo.x=gd.left.bingo.x;
 				gd.right.bingo.y=gd.left.bingo.y;
-				gd.timestamp=1000UL*timeGetTime(); // Используется скроллом
+				gd.timestamp=1000ULL*timeGetTime(); // Используется скроллом
 				on_gaze_data(&gd, NULL);
 			}
 		}
@@ -168,8 +178,8 @@ int BKBTET::Init(HWND hwnd)
 	// 1. Initialize TCP connection
 	if(TETconnect(hwnd)) goto cleanup;
 	// 2. Set Push mode
-	send(TETSocket,JSON_set_push,static_cast<int>(strlen(JSON_set_push)),0);
-	recv(TETSocket, buffer, 4095, 0); // ignore the reply
+	if(SOCKET_ERROR==send(TETSocket,JSON_set_push,static_cast<int>(strlen(JSON_set_push)),0)) goto cleanup;
+	if(0>=recv(TETSocket, buffer, 4095, 0)) goto cleanup;
 	// 2. Start heartbeat thread
 	handler_HeartBeat=_beginthreadex(NULL,0,HeartBeatThread,0,0,NULL);
 	if(1>handler_HeartBeat) goto cleanup; // this will never happen... but...
@@ -189,10 +199,11 @@ int BKBTET::Halt(HWND hwnd)
 	if(!initialized) return 1; // уже завершили работу
 	initialized=false;
 	// Shut down winsock
-	WSACleanup();
+	flag_ShutDownThreads.store(true, std::memory_order_relaxed); // inform the threads to terminate
 	// Wait for threads to terminate
-	flag_ShutDownThreads=true; // inform the threads to terminate
-	if(handler_HeartBeat) WaitForSingleObject((HANDLE)handler_HeartBeat,0);
-	if(handler_Reader) WaitForSingleObject((HANDLE)handler_Reader,0);
+	if(handler_HeartBeat) WaitForSingleObject((HANDLE)handler_HeartBeat, 2000);
+	if(handler_Reader) WaitForSingleObject((HANDLE)handler_Reader, 2000);
+	closesocket(TETSocket);
+	WSACleanup();
 	return 0;
 }

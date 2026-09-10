@@ -7,7 +7,7 @@ HWND CircleWindow::CircleHwnd=0;
 extern HPEN green_pen;
 extern bool G_eytracker_is_working;
 //=================================================================================
-// Îêîííàÿ ïðîöåäóðà
+// Оконная процедура
 //=================================================================================
 LRESULT CALLBACK CircleTranspWndProc(HWND hwnd,
 						UINT message,
@@ -17,10 +17,10 @@ LRESULT CALLBACK CircleTranspWndProc(HWND hwnd,
 	switch (message)
 	{
 		case WM_CREATE:
-			// Ñîäðàíî èç èíòåðíåòà - òàê ìû äåëàåì îêíî ïðîçðà÷íûì â áåëûõ åãî ÷àñòÿõ
+			// Содрано из интернета - так мы делаем окно прозрачным в белых его частях
 			SetLayeredWindowAttributes(hwnd,RGB(255,255,255),NULL,LWA_COLORKEY);
 			break;
-		case WM_PAINT: // Ðèñóåì êðóæêè äëÿ ãëàç
+		case WM_PAINT: // Рисуем кружки для глаз
 			PAINTSTRUCT ps;
 			HDC hdc;
 			hdc=BeginPaint(hwnd,&ps);
@@ -31,19 +31,19 @@ LRESULT CALLBACK CircleTranspWndProc(HWND hwnd,
 		case WM_USER_MOVEWINDOW:
 			 MoveWindow(hwnd, static_cast<int>(wparam), static_cast<int>(lparam), 100, 100, FALSE);
 			 break;
-		case WM_CLOSE: // Çàêðûòèå îêíà èãíîðèðóåòñÿ
+		case WM_CLOSE: // Закрытие окна игнорируется
 			break;
 		default:
 			return DefWindowProc(hwnd,message,wparam,lparam);
 	}
-	return 0; // Îáðàáîòàëè, ñâàëèëèñü ñþäà ïî break
+	return 0; // Обработали, свалились сюда по break
 }
-// Ñîçäàíèå îêíà
+// Создание окна
 int CircleWindow::Init()
 {
-	ATOM aresult; // Äëÿ âñÿêèõ êîäîâ âîçâðàòà
+	ATOM aresult; // Для всяких кодов возврата
 	TCHAR *CircleWindowCName=L"MhookCircleWindow1.0";
-	// 1. Ðåãèñòðàöèÿ êëàññà îêíà
+	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, CircleTranspWndProc, 0,
 		0,
 		MHInst,
@@ -61,7 +61,7 @@ int CircleWindow::Init()
 #endif
 		return 1;
 	}
-	// Ñîçäà¸ì îêíî
+	// Создаём окно
 	CircleHwnd=CreateWindowEx(
 		//WS_EX_LAYERED|WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
 		WS_EX_LAYERED|WS_EX_TOPMOST,
@@ -80,7 +80,7 @@ int CircleWindow::Init()
 #endif
 		return 1;
 	}
-	// Ïîêàçûâàåì îêíî (ïîòîì îòëîæèì ïîêàç äî âðåìåíè ïåðåõâàòà ìûøè)
+	// Показываем окно (потом отложим показ до времени перехвата мыши)
 	//ShowWindow( CircleHwnd, SW_SHOWNORMAL);
 	//UpdateWindow( CircleHwnd );
 	return 0;

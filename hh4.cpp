@@ -3,6 +3,7 @@
 #include "MHKeypad.h"
 #include "Settings.h"
 #include "MVector.h"
+#include "WM_USER_messages.h"
 extern HWND		MHhwnd;
 #ifdef _DEBUG
 //#include <stdio.h>
@@ -59,9 +60,11 @@ int MHookHandler4::OnMouseMove(LONG _x, LONG _y)
 			// Это работает частично, начало и конец быстрого движения не ловятся, как в режиме 3
 			if(MHSettings::flag_skip_fast)
 			{
+				if(time_now!=last_any_time) {
 				Qspeed=100.0f*(dx*dx)/(time_now-last_any_time); // пикселов в квадрате за 100 мс
 				if(Qspeed>MHSettings::minimal_mouse_speed) // Это элемент быстрого движения!!!
 					dx=0;
+				}
 			}
 			//position=MHVector::NewValues(dx,0); // Движение по оси Y не передаём
 			position=MHVector::NewValues(dx,dy); // Движение по оси Y ПЕРЕДАЁМ
@@ -114,9 +117,11 @@ int MHookHandler4::OnMouseMove(LONG _x, LONG _y)
 			// Это работает частично, начало и конец быстрого движения не ловятся, как в режиме 3
 			if(MHSettings::flag_skip_fast)
 			{
+				if(time_now!=last_any_time) {
 				Qspeed=100.0f*(dy*dy)/(time_now-last_any_time); // пикселов в квадрате за 100 мс
 				if(Qspeed>MHSettings::minimal_mouse_speed) // Это элемент быстрого движения!!!
 					dy=0;
+				}
 			}
 			// position=MHVector::NewValues(0,dy); // Движение по оси X не передаём
 			position=MHVector::NewValues(dx,dy); // Движение по оси X ПЕРЕДАЁМ
@@ -184,21 +189,18 @@ int MHookHandler4::OnMouseMove(LONG _x, LONG _y)
 			{
 				MHKeypad::Reset(); // Отпускаем нажатые кнопки
 				// Почему-то Reset не включает перерисовку
-				//InvalidateRect(MHhwnd,NULL,TRUE);
+				//ThrottledInvalidate();
 			}
 			else MHKeypad::Press(position,true);
 		}
 		last_any_time=time_now;
 	}
 	// Для рисования квадратиков это надо делать всегда
-	InvalidateRect(MHhwnd,NULL,TRUE);
+	ThrottledInvalidate();
 	if(!initialized) initialized=true;
 	last_x=_x;
 	last_y=_y;
-	if(last_x<0) last_x=0;
-	if(last_y<0) last_y=0;
-	if(last_x>=screen_x) last_x=screen_x-1;
-	if(last_y>=screen_y) last_y=screen_y-1;
+	ClampToScreen(last_x, last_y, screen_x, screen_y);
 	last_x_direction=x_direction;
 	last_y_direction=y_direction;
 #ifdef _DEBUG
@@ -216,7 +218,7 @@ bool MHookHandler4::OnRDown()
 	last_x_direction=0;
 	last_y_direction=0;
 	// Почему-то Reset не включает перерисовку
-	InvalidateRect(MHhwnd,NULL,TRUE);
+	ThrottledInvalidate();
 	return true; // подавляйте правый клик
 }
 bool MHookHandler4::OnRUp()
@@ -280,7 +282,7 @@ void MHookHandler4::OnTimer()
 			{
 				MHKeypad::Reset(); // Отпускаем нажатые кнопки
 				// Почему-то Reset не включает перерисовку
-				//InvalidateRect(MHhwnd,NULL,TRUE);
+				//ThrottledInvalidate();
 			}
 			else MHKeypad::Press(position,true);
 		}
@@ -296,14 +298,14 @@ void MHookHandler4::OnTimer()
 			{
 				MHKeypad::Reset(); // Отпускаем нажатые кнопки
 				// Почему-то Reset не включает перерисовку
-				//InvalidateRect(MHhwnd,NULL,TRUE);
+				//ThrottledInvalidate();
 			}
 			else MHKeypad::Press(position,true);
 		}
 	}
 	MHVector::Reset(); // Вот это обязательно, иначе в том же направлении мышь не нажмёт клавишу
 	// Почему-то Reset не включает перерисовку
-	InvalidateRect(MHhwnd,NULL,TRUE);
+	ThrottledInvalidate();
 	position_mem=-1;
 	KillTimer(MHhwnd,1);
 }

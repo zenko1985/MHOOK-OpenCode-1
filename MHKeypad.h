@@ -4,18 +4,16 @@
 class MHKeypad
 {
 public:
-	static void Init(WORD _scancode0, WORD _scancode1, WORD _scancode2, WORD _scancode3, WORD _scancode4, WORD _scancode5,
-		WORD _scancode6, WORD _scancode7, WORD _scancode8, WORD _scancode9, WORD _scancode10,
-		WORD _scancode11, WORD _scancode12, WORD _scancode13, WORD _scancode14,
-		WORD _scancode15, WORD _scancode16);
+	static void Init(const WORD (&scancodes)[17]);
 	static void Reset(int shift=0);
-	static int GetPosition(){return keypad_position;};
+	static __forceinline int GetPosition(){return keypad_position;};
 	static void Press(int position, bool down, int shift=0);
-	//static void Press4(int position, bool down, int shift=0);
-	static bool Press4(int position, bool down, int shift=0); // теперь возвращает false если реального нажатия не было - это для правой кнопки мыни надо было
-	static void Press8(int position, bool down); // Для 8 умений
+	static bool Press4(int position, bool down, int shift=0);
+	static void Press8(int position, bool down);
+	static void Tap(int position, int shift=0);
 protected:
 	static int keypad_position;
 	static WORD scancode[17];
+	static int PressKeyToInput(int position, bool down, int shift, INPUT *out);
 };
 #endif

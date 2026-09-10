@@ -2,12 +2,18 @@
 #include <Windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
+#include <shellapi.h>
+#include <tlhelp32.h>
+#include <strsafe.h>
 #pragma comment(lib, "shlwapi.lib")
 #include "Bitmap.h"
 #include "Settings.h"
 #include "MagicWindow.h"
 #include "CursorDot.h"
+#include "EmbeddedExe.h"
 extern HWND MHhwnd;
+// Прототип хук-процедуры (определена в HookProc.cpp)
+LRESULT CALLBACK HookProc(int disabled, WPARAM wParam, LPARAM lParam);
 bool flag_inside_window=false;
 extern HHOOK handle;
 extern LONG screen_x, screen_y, screen_x_real, screen_y_real;
@@ -15,6 +21,9 @@ extern double screen_scale;
 extern int top_position; // Это в HookProc определяет, в каком углу экрана мы задержались.
 extern bool flag_left_button_waits;
 extern bool flag_right_button_waits;
+extern bool flag_lmb_win_active;
+extern bool flag_lmb_esc_active;
+extern bool left_button_down;
 LONG quad_x=0,quad_y=0; // Координаты квадратика в окне
 static TRACKMOUSEEVENT tme={sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT};
 // для отладки (определены и назначаются в HookProc)
@@ -68,6 +77,9 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 			KillTimer(hwnd,3);
 			KillTimer(hwnd,4);
 			KillTimer(hwnd,5);
+			KillTimer(hwnd,7);
+			KillTimer(hwnd,8);
+			KillTimer(hwnd,9); // Watchdog таймер
 			MHKeypad::Reset();
 			// Скрываем красную точку перед выходом
 			CursorDot::Hide();
@@ -90,6 +102,35 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 					if(MHSettings::hh) MHSettings::hh->TopLeftCornerTimer();
 					break;
 				case 1:
+				{
+					// Выгружаем AHK скрипты перед открытием диалога настроек
+					// .ahk файлы запускаются через AutoHotkey.exe — убиваем его
+					HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+					if(hSnap != INVALID_HANDLE_VALUE) {
+						PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
+						if(Process32First(hSnap, &pe)) {
+							do {
+								if(MHSettings::flag_autoclick_ahk && MHSettings::flag_autoclick_ahk_loaded) {
+									if(_tcsicmp(pe.szExeFile, _T("AutoHotkey.exe")) == 0 ||
+									   _tcsicmp(pe.szExeFile, _T("AutoHotkey64.exe")) == 0) {
+										MHSettings::flag_autoclick_ahk_loaded=false;
+										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
+									}
+								}
+								if(MHSettings::flag_wheel_ahk && MHSettings::flag_wheel_ahk_loaded) {
+									if(_tcsicmp(pe.szExeFile, _T("AutoHotkey.exe")) == 0 ||
+									   _tcsicmp(pe.szExeFile, _T("AutoHotkey64.exe")) == 0) {
+										MHSettings::flag_wheel_ahk_loaded=false;
+										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
+									}
+								}
+							} while(Process32Next(hSnap, &pe));
+						}
+						CloseHandle(hSnap);
+					}
+				}
 					// Теперь смена позиция происходит только по выезду мыши из области!
 					//top_position=-1;
 					// Скрываем красную точку перед открытием диалога настроек
@@ -125,25 +166,65 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 				MHKeypad::Press4(10,false);
 				flag_right_button_waits=false;
 				break;
-		case 5:
-			// Таймер волшебных окон, для имитации движения мыши
-			MagicWindow::OnTimer5();
-			// Обновление позиции красной точки курсора
-			if(MHSettings::flag_cursor_visible)
-				CursorDot::UpdatePosition();
-			break;
+	case 5:
+		// Таймер волшебных окон, для имитации движения мыши
+		MagicWindow::OnTimer5();
+		// Обновление позиции красной точки курсора (используем последнюю известную позицию)
+		if(MHSettings::flag_cursor_visible)
+		{
+			POINT pt;
+			if(GetCursorPos(&pt))
+				CursorDot::UpdatePosition(pt.x, pt.y);
+		}
+		break;
 		case 6:
 			// Таймер автокликера - пульсация нажатия клавиши
 			MHKeypad::Press4(5, false); // Отпустить
 			MHKeypad::Press4(5, true);  // Нажать
 			break;
+		case 7:
+			// AHK ЛКМ=Win: прошло 3 секунды удержания ЛКМ - нажимаем Win
+			KillTimer(hwnd, 7);
+			if(MHSettings::flag_lmb_win_ahk && left_button_down) {
+				INPUT input = {0};
+				input.type = INPUT_KEYBOARD;
+				input.ki.wScan = 0xE05B; // SC_LWIN
+				input.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY;
+				SendInput(1, &input, sizeof(INPUT));
+				flag_lmb_win_active = true;
+			}
+			break;
+		case 8:
+			// ЛКМ=Esc: прошло 3 секунды удержания ЛКМ - нажимаем Esc
+			KillTimer(hwnd, 8);
+			if(MHSettings::flag_lmb_esc && left_button_down) {
+				INPUT input = {0};
+				input.type = INPUT_KEYBOARD;
+				input.ki.wScan = 0x01; // SC_ESC
+				input.ki.dwFlags = KEYEVENTF_SCANCODE;
+				SendInput(1, &input, sizeof(INPUT));
+				flag_lmb_esc_active = true;
+			}
+			break;
+		case 9:
+			// Watchdog: проверяем, жив ли WH_MOUSE_LL хук (Windows 11 24H2 может тихо снять его)
+			// Нет прямого способа проверить — просто перевстанавливаем каждые 5 секунд
+			if(handle == NULL) {
+				handle = SetWindowsHookExW(WH_MOUSE_LL,
+					HookProc,
+					GetModuleHandle(NULL),
+					NULL);
+			}
+			break;
 		}
 			break;
 		case WM_DISPLAYCHANGE:
-			//screen_x=(LONG)((SHORT)LOWORD(lparam));
-			//screen_y=(LONG)((SHORT)HIWORD(lparam));
-			screen_x=LOWORD(lparam);
-			screen_y=HIWORD(lparam);
+			{
+				WORD cx = LOWORD(lparam);
+				WORD cy = HIWORD(lparam);
+				screen_x = (LONG)cx;
+				screen_y = (LONG)cy;
+			}
 			// Козлиная система разрешений экрана в windows8.1...
 			DEVMODE dm;
 			ZeroMemory (&dm, sizeof (dm));
@@ -181,8 +262,11 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 				if (ext && _tcsicmp(ext, _T(".MHOOK")) == 0) {
 					isMhook = true;
 				} else if (ext && _tcsicmp(ext, _T(".MHOO")) == 0) {
-					_tcscpy(ext, _T(".MHOOK"));
-					isMhook = true;
+					size_t extLen = _tcslen(ext);
+					if (extLen + 2 < MAX_PATH) {
+						_tcscpy_s(ext, MAX_PATH - (ext - filename), _T(".MHOOK"));
+						isMhook = true;
+					}
 				}
 				if (isMhook) {
 					MHSettings::OpenMHookConfig(hwnd, filename);
@@ -191,13 +275,18 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 					if (targetWnd && targetWnd != hwnd) {
 						TCHAR windowTitle[256];
 						GetWindowText(targetWnd, windowTitle, 256);
+						windowTitle[255] = _T('\0');
 						if (windowTitle[0]) {
 							TCHAR mhookPath[MAX_PATH];
 							GetModuleFileName(NULL, mhookPath, MAX_PATH);
 							PathRemoveFileSpec(mhookPath);
-							PathAppend(mhookPath, windowTitle);
-							_tcscat(mhookPath, _T(".MHOOK"));
-							if (GetFileAttributes(mhookPath) != INVALID_FILE_ATTRIBUTES) {
+							size_t curLen = _tcslen(mhookPath);
+							size_t titleLen = _tcslen(windowTitle);
+							const TCHAR suffix[] = _T(".MHOOK");
+							size_t suffixLen = _tcslen(suffix);
+							if (curLen + 1 + titleLen + suffixLen < MAX_PATH) {
+								PathAppend(mhookPath, windowTitle);
+								_tcscat_s(mhookPath, MAX_PATH, suffix);
 								MHSettings::OpenMHookConfig(hwnd, mhookPath);
 							}
 						}

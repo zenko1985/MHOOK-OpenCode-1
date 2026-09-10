@@ -3,6 +3,7 @@
 #include "MVector.h"
 #include "MHKeypad.h"
 #include "Settings.h"
+#include "WM_USER_messages.h"
 extern LONG screen_x, screen_y;
 extern HWND		MHhwnd;
 int MHookHandler2::OnMouseMove(LONG _x, LONG _y)
@@ -29,17 +30,14 @@ int MHookHandler2::OnMouseMove(LONG _x, LONG _y)
 			else
 			{
 				// просто перерисовать квадратик
-				InvalidateRect(MHhwnd,NULL,TRUE);
+				ThrottledInvalidate();
 			}
 		}
 	}
 	if(!initialized) initialized=true;
 	last_x=_x;
 	last_y=_y;
-	if(last_x<0) last_x=0;
-	if(last_y<0) last_y=0;
-	if(last_x>=screen_x) last_x=screen_x-1;
-	if(last_y>=screen_y) last_y=screen_y-1;
+	ClampToScreen(last_x, last_y, screen_x, screen_y);
 	return 0; // Новая директива ВЦСПС
 }
 bool MHookHandler2::OnRDown()

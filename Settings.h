@@ -7,26 +7,38 @@ class MHSettings
 {
 public:
 	static int SettingsDialogue(HWND hwnd);
-	// Число позиций на кейпаде (4 или 8)
-	static int GetNumPositions(){return num_positions;}
+	static __forceinline int GetNumPositions(){return num_positions;}
 	static void SetNumPositions(int _num_positions){num_positions=_num_positions;}
-	// Чувствительность мыши
-	static int GetMouseSensitivity(){return mouse_sensitivity;}
+	static __forceinline int GetMouseSensitivity(){return mouse_sensitivity;}
 	static void SetMouseSensitivity(int _mouse_sensitivity){mouse_sensitivity=_mouse_sensitivity;}
 	static MHookHandler *hh;
-	static int GetPosition() {if(hh) return hh->GetPosition(); else return -1;}
+	static __forceinline int GetPosition() {if(hh) return hh->GetPosition(); else return -1;}
 	static DWORD time_between_pushes;
 	static DWORD timeout_after_move;
 	static LONG minimal_mouse_speed, timeout_mouse_switch, timeout_mouse_click, deadx, deady;
 	static bool flag_enable_speed_button;
-	static bool flag_2moves, flag_2moves_mode1, flag_change_direction_ontheway, flag_right_mb_iskey, flag_alt2,flag_no_move_right_mb,
+	static bool flag_2moves, flag_2moves_mode1, flag_change_direction_ontheway, flag_right_mb_iskey,flag_no_move_right_mb,
 		flag_mode5autoclick, flag_right_mb_doubleclick,
 		flag_left_mb_push_twice, flag_right_mb_push_twice,
 		flag_downall, flag_skip_fast, flag_up_immediately;
 	static bool flag_autoclick_lmb;
 	static int autoclick_speed_index;
+	static bool flag_autoclick_ahk;
+	static bool flag_wheel_ahk;
+	static bool flag_lmb_win_ahk;
+	static bool flag_lmb_esc;
+	static bool flag_autoclick_ahk_loaded;
+	static bool flag_wheel_ahk_loaded;
+	static bool flag_lmb_win_ahk_loaded;
 	static bool flag_cursor_visible;
 	static int mode,mode3axe;
+	// Language: 0=RU, 1=EN
+	static int language;
+	// Gamepad
+	static bool flag_gamepad_enabled;
+	static int gamepad_sensitivity;
+	static WORD gamepad_mapping[14];
+	static int gamepad_current_mapping[14];
 	static int circle_scale_factor;
 	static int OpenMHookConfig(HWND hwnd,TCHAR *default_filename=NULL);
 	static int SaveMHookConfig(HWND hwnd);
@@ -38,6 +50,9 @@ public:
 	static void BeforeSaveOrStart2(HWND hdwnd);
 	static void Save2(FILE *f);
 	static int Load2(FILE *f,int wcount);
+	// Localization
+	static void UpdateDialog1Texts(HWND hdwnd);
+	static void UpdateDialog2Texts(HWND hdwnd);
 protected:
 	static int num_positions, mouse_sensitivity;
 };
@@ -51,8 +66,8 @@ typedef struct
 	TCHAR *stroka;
 	WORD value;
 } MHWORDChar;
-#define MH_NUM_SCANCODES 105
+#define MH_NUM_SCANCODES 108
 // А это для волшебных окон, которые могут не только кнопки жать, но и ещё всякое
-#define MH_NUM_SCANCODES_EXTRA 110
+#define MH_NUM_SCANCODES_EXTRA 113
 extern MHWORDChar dlg_scancodes[MH_NUM_SCANCODES_EXTRA];
 #endif

@@ -6,9 +6,10 @@ HWND CursorDot::DotHwnd = NULL;
 bool CursorDot::is_visible = false;
 POINT CursorDot::last_mouse_pos = {0, 0};
 DWORD CursorDot::last_update_time = 0;
+HBRUSH CursorDot::hDotBrush = NULL;
+HPEN CursorDot::hDotPen = NULL;
 static bool class_registered = false;
 extern HINSTANCE MHInst;
-extern HWND MHhwnd;
 // Размер окна (маленький)
 #define DOT_SIZE 6
 // Цвет точки (красный с прозрачностью)
@@ -17,7 +18,9 @@ extern HWND MHhwnd;
 #define DOT_ALPHA 200
 int CursorDot::Init()
 {
-	// Регистрация класса окна (только один раз)
+	// Кэшируем GDI-объекты один раз
+	if(!hDotBrush) hDotBrush = CreateSolidBrush(DOT_COLOR);
+	if(!hDotPen) hDotPen = CreatePen(PS_SOLID, 1, DOT_COLOR);
 	if (!class_registered)
 	{
 		WNDCLASS wc = {0};
@@ -29,84 +32,77 @@ int CursorDot::Init()
 		if (!RegisterClass(&wc))
 		{
 			if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-			{
 				return -1;
-			}
 		}
 		class_registered = true;
+	}
+	if (DotHwnd == NULL)
+	{
+		GetCursorPos(&last_mouse_pos);
+		DotHwnd = CreateWindowEx(
+			WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+			TEXT("CursorDotClass2"),
+			TEXT("CursorDot"),
+			WS_POPUP,
+			last_mouse_pos.x - DOT_SIZE/2,
+			last_mouse_pos.y - DOT_SIZE/2,
+			DOT_SIZE, DOT_SIZE,
+			NULL, NULL, MHInst, NULL
+		);
+		if (DotHwnd == NULL)
+		{
+			is_visible = false;
+			return -1;
+		}
+		SetLayeredWindowAttributes(DotHwnd, 0, DOT_ALPHA, LWA_ALPHA);
 	}
 	return 0;
 }
 void CursorDot::Show()
 {
-	// Если окно уже есть - уничтожаем его
 	if (DotHwnd != NULL)
 	{
-		DestroyWindow(DotHwnd);
-		DotHwnd = NULL;
-	}
-	// Регистрация класса (если еще не зарегистрирован)
-	if (!class_registered)
-	{
-		Init();
-	}
-	// Получаем позицию мыши
-	GetCursorPos(&last_mouse_pos);
-	// Создаем окно с прозрачностью
-	DotHwnd = CreateWindowEx(
-		WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT,
-		TEXT("CursorDotClass2"),
-		TEXT("CursorDot"),
-		WS_POPUP,
-		last_mouse_pos.x - DOT_SIZE/2,
-		last_mouse_pos.y - DOT_SIZE/2,
-		DOT_SIZE, DOT_SIZE,
-		NULL, NULL, MHInst, NULL
-	);
-	if (DotHwnd == NULL)
-	{
-		is_visible = false;
+		ShowWindow(DotHwnd, SW_SHOWNA);
+		UpdateWindow(DotHwnd);
+		is_visible = true;
+		InvalidateRect(DotHwnd, NULL, TRUE);
+		POINT pt;
+		if(GetCursorPos(&pt)) UpdatePosition(pt.x, pt.y);
 		return;
 	}
-	// Устанавливаем прозрачность окна
-	SetLayeredWindowAttributes(DotHwnd, 0, DOT_ALPHA, LWA_ALPHA);
-	// Показываем окно
-	ShowWindow(DotHwnd, SW_SHOWNA);
-	UpdateWindow(DotHwnd);
-	// Принудительная перерисовка
-	InvalidateRect(DotHwnd, NULL, TRUE);
-	is_visible = true;
+	if (Init() == 0)
+	{
+		ShowWindow(DotHwnd, SW_SHOWNA);
+		UpdateWindow(DotHwnd);
+		InvalidateRect(DotHwnd, NULL, TRUE);
+		is_visible = true;
+	}
 }
 void CursorDot::Hide()
 {
 	if (DotHwnd != NULL)
 	{
-		DestroyWindow(DotHwnd);
-		DotHwnd = NULL;
+		ShowWindow(DotHwnd, SW_HIDE);
 		is_visible = false;
 	}
 }
-void CursorDot::UpdatePosition()
+void CursorDot::UpdatePosition(LONG x, LONG y)
 {
 	if (!is_visible || DotHwnd == NULL) return;
+	// Throttle: не обновлять чаще 16мс (~60fps)
 	DWORD now = timeGetTime();
 	if (now - last_update_time < 16) return;
 	last_update_time = now;
-	if (!IsWindow(DotHwnd))
-	{
-		DotHwnd = NULL;
-		is_visible = false;
-		return;
-	}
-	GetCursorPos(&last_mouse_pos);
+	if (x == last_mouse_pos.x && y == last_mouse_pos.y) return;
+	last_mouse_pos.x = x;
+	last_mouse_pos.y = y;
 	SetWindowPos(
 		DotHwnd,
 		HWND_TOPMOST,
-		last_mouse_pos.x - DOT_SIZE/2,
-		last_mouse_pos.y - DOT_SIZE/2,
-		DOT_SIZE,
-		DOT_SIZE,
-		SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER
+		x - DOT_SIZE/2,
+		y - DOT_SIZE/2,
+		0, 0,
+		SWP_NOACTIVATE | SWP_NOSIZE
 	);
 }
 LRESULT CALLBACK CursorDot::DotWndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
@@ -117,17 +113,12 @@ LRESULT CALLBACK CursorDot::DotWndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPAR
 		{
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hwnd, &ps);
-			// Рисование красного круга с антиалиасингом
-			HBRUSH brush = CreateSolidBrush(DOT_COLOR);
-			HPEN pen = CreatePen(PS_SOLID, 1, DOT_COLOR);
-			HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, brush);
-			HPEN oldPen = (HPEN)SelectObject(hdc, pen);
-			// Рисуем круг поменьше в центре окна
+			// Используем кэшированные GDI-объекты
+			HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hDotBrush);
+			HPEN oldPen = (HPEN)SelectObject(hdc, hDotPen);
 			Ellipse(hdc, 1, 1, DOT_SIZE-1, DOT_SIZE-1);
 			SelectObject(hdc, oldBrush);
 			SelectObject(hdc, oldPen);
-			DeleteObject(brush);
-			DeleteObject(pen);
 			EndPaint(hwnd, &ps);
 			return 0;
 		}
@@ -150,7 +141,6 @@ LRESULT CALLBACK CursorDot::DotWndProc(HWND hwnd, UINT uMsg, WPARAM wparam, LPAR
 			// Окно прозрачно для кликов
 			return HTTRANSPARENT;
 		case WM_DESTROY:
-			DotHwnd = NULL;
 			return 0;
 		default:
 			return DefWindowProc(hwnd, uMsg, wparam, lparam);

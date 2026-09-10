@@ -59,7 +59,10 @@ void MHookHandler::OnLDown()
 		// Автокликер для левой кнопки мыши
 		if(MHSettings::flag_autoclick_lmb)
 		{
-			int speed_ms = autoclick_speeds[MHSettings::autoclick_speed_index];
+			int idx = MHSettings::autoclick_speed_index;
+			if (idx < 0) idx = 0;
+			if (idx > 3) idx = 3;
+			int speed_ms = autoclick_speeds[idx];
 			SetTimer(MHhwnd, 6, speed_ms, NULL);
 		}
 	}

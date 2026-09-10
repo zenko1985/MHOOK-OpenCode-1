@@ -1,5 +1,6 @@
 ﻿#include <Windows.h>
 #include <process.h>
+#include <atomic>
 #include "MHRepErr.h"
 #include "TobiiREX.h"
 static uintptr_t tobii_thread_handler; // Хендлер потока для Gaze SDK
@@ -69,11 +70,11 @@ static void gaze_point_callback( type_tobii_gaze_point const* gaze_point, void* 
 //=====================================================================================
 // Поток, читающий очередную порцию глазных координат
 //=====================================================================================
-static bool volatile flag_stop_thread=false;
+static std::atomic<bool> flag_stop_thread{false};
 unsigned __stdcall TobiiStreamThread(void *p)
 {
 	int err;
-	while(!flag_stop_thread)
+	while(!flag_stop_thread.load(std::memory_order_relaxed))
 	{
 		err = (*fp_tobii_wait_for_callbacks)( NULL, 1, &device );
 		if(err!=0 && err !=6) //TOBII_ERROR_TIMED_OUT разрешается
@@ -97,7 +98,7 @@ int BKBTobiiREX::Init(HWND hwnd)
 {
 	int err;
 	if(initialized) return 1; // уже инициализировали
-	TobiiStreamDLL = LoadLibrary(L"tobii_stream_engine.dll");
+	TobiiStreamDLL = LoadLibraryExW(L"tobii_stream_engine.dll", NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
 	if(0==TobiiStreamDLL)
 	{
 		MHReportError(L"Не удалось загрузить библиотеку tobii_stream_engine.dll\r\nСкопируйте её в рабочий каталог программы",hwnd);
@@ -174,7 +175,7 @@ int BKBTobiiREX::Halt(HWND hwnd)
 	int err;
 	if(!initialized) return 1; // уже завершили работу
 	// Первым делом остановим поток!
-	flag_stop_thread=true;
+	flag_stop_thread.store(true, std::memory_order_relaxed);
 	WaitForSingleObject((HANDLE)tobii_thread_handler,INFINITE);
 	// Содрано из Tobii Stream SDK
 	err = (*fp_tobii_gaze_point_unsubscribe)( device );
