@@ -1,53 +1,36 @@
-x64/
-Debug/
-Release/
-.vs/
-*.user
-*.suo
-*.sdf
-*.log
-*.tlog
-*.obj
-*.pdb
-*.ilk
-*.idb
-*.iobj
-*.ipdb
-*.lastbuildstate
-*.unsuccessfulbuild
-*.aps
-RCa*
-UpgradeLog.htm
-names.txt
-output.txt
-removed_embedded.txt
-check_matched.py
-
-# Промежуточная сборка MSBuild
-MHook64/
+# Корень репозитория. Сам проект лежит в source mhook/ и игнорируется его
+# собственным .gitignore. Здесь только то, что в репозиторий попадать не должно.
+#
+# ВНИМАНИЕ: правила с ведущим слэшем (/*.exe) действуют только на корень.
+# Без слэша, например *.ahk, git применил бы их ко всем вложенным папкам
+# и отслеживание не входящих в корень файлов сломалось бы.
 
 # Отдельный проект, в этот репозиторий не входит
 source mishkinamish/
 
-# Локальные рабочие папки с исходниками
-source mhook/
+# Сборочные каталоги (действуют на любом уровне)
+x64/
+MHook64/
+Debug/
+Release/
+.vs/
 
-# Посторонние бинарники в корне
-*.exe
+# Посторонние бинарники и локальные настройки - только корень
+/*.exe
+/*.user
+/*.suo
+/*.log
+/*.aps
 
-# Игровые конфиги и макросы
-*.mhook
-*.MM1
-*.pie
-*.pos
-mishkinamish.ini
-tegalka.html
+# Игровые конфиги - только корень
+/*.mhook
+/*.MM1
+/*.pie
+/*.pos
+/mishkinamish.ini
+/tegalka.html
 
-# Посторонние макросы (в сборку не входят).
-# Авто клик.ahk и Колёсико.ahk исключением НЕ являются - они встраиваются
-# в exe как RCDATA (IDR_AHK_AUTOCLICK / IDR_AHK_WHEEL), без них сборка падает.
-poe.ahk
-Авто клик только в окне.ahk
-Авто клик только в окне Bubble.ahk
-Уменьшение скорости мыши.ahk
-просьба соц сети.ahk
+# Посторонние макросы в корне - только корень.
+# Рабочие Авто клик.ahk и Колёсико.ahk лежат в source mhook/ и встраиваются
+# в exe как RCDATA (IDR_AHK_AUTOCLICK / IDR_AHK_WHEEL) - там они отслеживаются.
+/*.ahk

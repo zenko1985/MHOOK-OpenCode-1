@@ -1,0 +1,27 @@
+x64/
+Debug/
+Release/
+.vs/
+*.user
+*.suo
+*.sdf
+*.log
+*.tlog
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.iobj
+*.ipdb
+*.lastbuildstate
+*.unsuccessfulbuild
+*.aps
+RCa*
+UpgradeLog.htm
+names.txt
+output.txt
+removed_embedded.txt
+check_matched.py
+
+# Промежуточная сборка MSBuild
+MHook64/
