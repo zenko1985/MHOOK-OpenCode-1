@@ -181,7 +181,16 @@ BOOL CALLBACK DlgSettings2WndProc(HWND hdwnd,
 //===================================================================
 // Диалог настроек
 //===================================================================
-static bool wasd_shown=true; // Показаны ли кнопки WSAD?
+// Ищет индекс клавиши в списке выбора скан-кодов. Номера в комментариях над
+// таблицей dlg_scancodes не совпадают с реальными индексами, поэтому ищем
+// по самому значению скан-кода
+static int FindScancodeIndex(WORD scancode)
+{
+	for (int i=0;i<MH_NUM_SCANCODES_EXTRA;i++)
+		if (dlg_scancodes[i].value==scancode) return i;
+	return 0;
+}
+static bool wasd_shown=false; // Показаны ли кнопки WASD?
 static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 						   UINT uMsg,
 						   WPARAM wparam,
@@ -198,21 +207,22 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 				MagicWindow::Hide();
 				return 1;
 			case IDC_BUTTON_WASD:
+				// Кнопка переключает две раскладки: WASD и стрелки
 				if(wasd_shown)
 				{
 					wasd_shown=false;
-					SendDlgItemMessage(hdwnd,IDC_UP, CB_SETCURSEL, 1, 0L);
-					SendDlgItemMessage(hdwnd,IDC_RIGHT, CB_SETCURSEL, 2, 0L);
-					SendDlgItemMessage(hdwnd,IDC_DOWN, CB_SETCURSEL, 3, 0L);
-					SendDlgItemMessage(hdwnd,IDC_LEFT, CB_SETCURSEL, 4, 0L);
+					SendDlgItemMessage(hdwnd,IDC_UP,   CB_SETCURSEL,FindScancodeIndex(SC_UP),   0L);
+					SendDlgItemMessage(hdwnd,IDC_RIGHT,CB_SETCURSEL,FindScancodeIndex(SC_RIGHT),0L);
+					SendDlgItemMessage(hdwnd,IDC_DOWN, CB_SETCURSEL,FindScancodeIndex(SC_DOWN), 0L);
+					SendDlgItemMessage(hdwnd,IDC_LEFT, CB_SETCURSEL,FindScancodeIndex(SC_LEFT), 0L);
 				}
 				else
 				{
 					wasd_shown=true;
-					SendDlgItemMessage(hdwnd,IDC_UP, CB_SETCURSEL, 27, 0L);
-					SendDlgItemMessage(hdwnd,IDC_RIGHT, CB_SETCURSEL, 8, 0L);
-					SendDlgItemMessage(hdwnd,IDC_DOWN, CB_SETCURSEL, 23, 0L);
-					SendDlgItemMessage(hdwnd,IDC_LEFT, CB_SETCURSEL, 5, 0L);
+					SendDlgItemMessage(hdwnd,IDC_UP,   CB_SETCURSEL,FindScancodeIndex(SC_W),0L);
+					SendDlgItemMessage(hdwnd,IDC_RIGHT,CB_SETCURSEL,FindScancodeIndex(SC_D),0L);
+					SendDlgItemMessage(hdwnd,IDC_DOWN, CB_SETCURSEL,FindScancodeIndex(SC_S),0L);
+					SendDlgItemMessage(hdwnd,IDC_LEFT, CB_SETCURSEL,FindScancodeIndex(SC_A),0L);
 				}
 				return 1;
 			case IDC_BUTTON_LOAD: // Грузим файл
@@ -233,6 +243,20 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 				{
 					MHSettings::flag_cursor_visible=false;
 					CursorDot::Hide();
+				}
+				return 1;
+			case IDC_CHECK_WHEEL_AHK: // AHK Колесико - кнопки колесика сбрасываем на "ничего"
+				if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_WHEEL_AHK,BM_GETCHECK, 0, 0))
+				{
+					MHSettings::flag_wheel_ahk=true;
+					dlg_current_scancodes[10]=0;
+					dlg_current_scancodes[16]=0;
+					SendDlgItemMessage(hdwnd,IDC_BUTTON7, CB_SETCURSEL, 0, 0L);
+					SendDlgItemMessage(hdwnd,IDC_BUTTON7_1, CB_SETCURSEL, 0, 0L);
+				}
+				else
+				{
+					MHSettings::flag_wheel_ahk=false;
 				}
 				return 1;
 		case IDC_LIST_RECENT_FILES:

@@ -1,23 +1,53 @@
-# Visual Studio
-.vs/
 x64/
 Debug/
 Release/
-*.suo
+.vs/
 *.user
-*.filters
-
-# Build
+*.suo
+*.sdf
+*.log
+*.tlog
 *.obj
-*.exe
 *.pdb
 *.ilk
-*.pch
 *.idb
-
-# Resource
+*.iobj
+*.ipdb
+*.lastbuildstate
+*.unsuccessfulbuild
 *.aps
+RCa*
+UpgradeLog.htm
+names.txt
+output.txt
+removed_embedded.txt
+check_matched.py
 
-# Temporary
-RC*
-*.tmp
+# Промежуточная сборка MSBuild
+MHook64/
+
+# Отдельный проект, в этот репозиторий не входит
+source mishkinamish/
+
+# Локальные рабочие папки с исходниками
+source mhook/
+
+# Посторонние бинарники в корне
+*.exe
+
+# Игровые конфиги и макросы
+*.mhook
+*.MM1
+*.pie
+*.pos
+mishkinamish.ini
+tegalka.html
+
+# Посторонние макросы (в сборку не входят).
+# Авто клик.ahk и Колёсико.ahk исключением НЕ являются - они встраиваются
+# в exe как RCDATA (IDR_AHK_AUTOCLICK / IDR_AHK_WHEEL), без них сборка падает.
+poe.ahk
+Авто клик только в окне.ahk
+Авто клик только в окне Bubble.ahk
+Уменьшение скорости мыши.ahk
+просьба соц сети.ahk

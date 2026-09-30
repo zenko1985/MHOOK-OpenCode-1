@@ -1,7 +1,7 @@
 ﻿// Волшебные окна, нажимающие клавиши
 #ifndef __MH_MAGICWND
 #define __MH_MAGICWND
-#define NUM_MAGIC_WINDOWS 24
+#define NUM_MAGIC_WINDOWS 18
 class MagicWindow
 {
 public:

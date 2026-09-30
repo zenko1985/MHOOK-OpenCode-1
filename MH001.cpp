@@ -12,9 +12,11 @@
 #include "Localization.h"
 #define MH_WINDOW_SIZE 200
 // Watchdog для WH_MOUSE_LL: Windows 11 24H2 может тихо снять хук при превышении таймаута
-// Проверяем каждые 5 секунд и перевстанавливаем при необходимости
+// Проверяем каждые 5 секунд и переустанавливаем при необходимости
+#if (_WIN32_WINNT >= 0x0A00)
 #define MH_HOOK_WATCHDOG_TIMER 9
 #define MH_HOOK_WATCHDOG_INTERVAL 5000
+#endif
 //char debug_buf[4096];
 // Глобальные переменные, которые могут потребоваться везде
 TCHAR*		MHAppName=L"MHook V2";
@@ -55,15 +57,18 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	MSG msg; // Сообщение
 	TCHAR *MHWindowCName=L"MHook20";
 	RECT rect={0,0,MH_WINDOW_SIZE,MH_WINDOW_SIZE};
-	// Hardened DLL search order to prevent DLL hijacking (Windows 11 24H2)
-	typedef BOOL (WINAPI* SetDefaultDllDirectoriesFunc)(DWORD);
 	HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+#if (_WIN32_WINNT >= 0x0602) // Win8+
+	// Hardened DLL search order to prevent DLL hijacking (Windows 8+)
+	typedef BOOL (WINAPI* SetDefaultDllDirectoriesFunc)(DWORD);
 	if(hKernel32) {
 		SetDefaultDllDirectoriesFunc pSetDefaultDllDirs = (SetDefaultDllDirectoriesFunc)GetProcAddress(hKernel32, "SetDefaultDllDirectories");
 		if(pSetDefaultDllDirs) {
 			pSetDefaultDllDirs(LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
 		}
 	}
+#endif
+#if (_WIN32_WINNT >= 0x0A00) // Win10+
 	// DPI Awareness: пробуем современный API (Win10 1607+), fallback на legacy
 	// SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) — Win10 1703+
 	typedef BOOL (WINAPI* SetProcessDpiAwarenessContextFunc)(DPI_AWARENESS_CONTEXT);
@@ -71,7 +76,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		(SetProcessDpiAwarenessContextFunc)GetProcAddress(hKernel32, "SetProcessDpiAwarenessContext");
 	if(pSetDpiCtx) {
 		// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
-		// Включает PerMonitorV2 +自動 scaling للôkна с мигрированными children
+		// Включает PerMonitorV2 + авто scaling для окон с мигрированными children
 		if(!pSetDpiCtx((DPI_AWARENESS_CONTEXT)-4)) {
 			// Если V2 не поддерживается — пробуем PerMonitor (V1)
 			pSetDpiCtx((DPI_AWARENESS_CONTEXT)-3);
@@ -89,6 +94,12 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 			FreeLibrary(hShcore);
 		}
 	}
+#elif (_WIN32_WINNT >= 0x0600) // Vista/Win7+
+	// DPI Awareness для Vista/Win7/8/8.1
+	SetProcessDPIAware();
+#else
+	// На старых системах DPI virtualization включена по умолчанию
+#endif
 	// Делаем hInst доступной для всех
 	MHInst=hInst;
 	// Найдём размер экрана
@@ -163,10 +174,12 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	// Инициализируем работу хука (LL хук для Windows 10/11/24H2)
 	handle = SetWindowsHookExW(WH_MOUSE_LL,
 									HookProc,
-                                  GetModuleHandle(NULL),
-                                  NULL);
+                                   GetModuleHandle(NULL),
+                                   NULL);
+#if (_WIN32_WINNT >= 0x0A00)
 	// Запускаем watchdog для автовосстановления хука (Windows 11 24H2 может тихо снять его)
 	SetTimer(MHhwnd, MH_HOOK_WATCHDOG_TIMER, MH_HOOK_WATCHDOG_INTERVAL, NULL);
+#endif
 	//Цикл обработки сообщений
 	while(GetMessage(&msg,NULL,0,0))
     {

@@ -58,6 +58,8 @@ int MHookHandler3::OnMouseMove(LONG _x, LONG _y)
 			{
 				MHKeypad::Press(position,true,offset);
 				position_mem=position;
+				// Без этого окно джойстика не перерисовывается: клавиши жмутся, а стрелки не подсвечиваются
+				ThrottledInvalidate();
 			}
 			// Таймер взводим заново при любом движении мыши, если было хоть что-то нажато ранее
 			// то есть -1!=position_mem
@@ -157,12 +159,14 @@ int MHookHandler3::OnMouseMove(LONG _x, LONG _y)
 					}
 					else
 					{
-						// Только сейчас считаем себя SLOW
-						if(0<=position) // -2=мышь подвинулась на недостаточное растояние, -1= направление не изменилось
-						{
-							MHKeypad::Press(position,true,offset);
-							position_mem=position;
-						}
+					// Только сейчас считаем себя SLOW
+					if(0<=position) // -2=мышь подвинулась на недостаточное растояние, -1= направление не изменилось
+					{
+						MHKeypad::Press(position,true,offset);
+						position_mem=position;
+						// Без этого окно джойстика не перерисовывается: клавиши жмутся, а стрелки не подсвечиваются
+						ThrottledInvalidate();
+					}
 						// Таймер взводим заново при любом движении мыши, если было хоть что-то нажато ранее
 						// то есть -1!=position_mem
 						if(-1!=position_mem)

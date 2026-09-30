@@ -3,6 +3,7 @@
 #include "MVector.h"
 #include "MHKeypad.h"
 #include "Settings.h"
+#include "WM_USER_messages.h"
 extern LONG screen_x, screen_y;
 static bool movement_happened=false;
 int MHookHandler5::OnMouseMove(LONG _x, LONG _y)
@@ -27,6 +28,8 @@ int MHookHandler5::OnMouseMove(LONG _x, LONG _y)
 				MHKeypad::Press8(position,true);
 				position_mem=position;
 				movement_happened=true;
+				// Без этого окно джойстика не перерисовывается: клавиши жмутся, а картинка стоит
+				ThrottledInvalidate();
 			}
 		}
 		else
@@ -39,6 +42,8 @@ int MHookHandler5::OnMouseMove(LONG _x, LONG _y)
 			{
 				MHKeypad::Press8(position,true);
 				position_mem=position;
+				// Без этого окно джойстика не перерисовывается: клавиши жмутся, а картинка стоит
+				ThrottledInvalidate();
 			}
 			movement_happened=true;
 		}
@@ -68,6 +73,8 @@ bool MHookHandler5::OnRUp()
 	// Начинаем новый отсчет движений
 	MHVector::Reset();
 	if(-1!=position_mem) MHKeypad::Press8(position_mem,false);
+	// Гасим подсветку нажатой клавиши при отпускании правой кнопки мыши
+	ThrottledInvalidate();
 	// Автоклик
 	if(movement_happened)
 	{

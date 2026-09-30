@@ -370,8 +370,13 @@ void MHSettings::Save2(FILE *f)
 	{
 		mw=&MagicWindow::magic_wnd[i];
 		// Параметры-циферки
-		fprintf(f,"\n%d %d %d %d %d %d %d %d %d %d\n", mw->active, mw->mw_color, mw->x, mw->y, mw->width, mw->height,
-			mw->button_or_switch, mw->mouse_or_eytracker, mw->button_index, mw->mw_group);
+		// Дописываем проверочное значение скан-кода (как в Button*/Gamepad*), чтобы при загрузке
+		// однозначно восстановить индекс независимо от порядка в массиве dlg_scancodes
+		WORD btn_value = SC_NONE;
+		if(mw->button_index>=0 && mw->button_index<MH_NUM_SCANCODES_EXTRA)
+			btn_value = dlg_scancodes[mw->button_index].value;
+		fprintf(f,"\n%d %d %d %d %d %d %d %d %d %d 0x%hX\n", mw->active, mw->mw_color, mw->x, mw->y, mw->width, mw->height,
+			mw->button_or_switch, mw->mouse_or_eytracker, mw->button_index, mw->mw_group, btn_value);
 		// Параметр-строка
 		int cbLen = WideCharToMultiByte(CP_UTF8,0,mw->mw_name,-1,lcbuffer,sizeof(lcbuffer),NULL,NULL);
 		if(cbLen > 0 && cbLen <= sizeof(lcbuffer)) fputs(lcbuffer,f);
@@ -408,7 +413,38 @@ static const WORD old_scancode_order[MH_NUM_SCANCODES_EXTRA] = {
 	SC_LMOUSE_F12, SC_AUTO_LEFT, SC_AUTO_RIGHT, SC_SCROLL_THERE, SC_SCROLL_HERE, // 105-109
 	SC_MIDDLEMB, SC_WHEEL_UP, SC_WHEEL_DOWN // 110-112
 };
-
+//======================================================================
+// Декодирование надписи окна
+// В .MHOOK надписи хранятся в UTF-8, но старые конфиги записаны в Windows-1251.
+// Пробуем строгий UTF-8 (MB_ERR_INVALID_CHARS), при неудаче откатываемся на 1251,
+// иначе каждая кириллическая буква превратится в символ-заменитель U+FFFD.
+//======================================================================
+static void DecodeWindowName(const char *src, TCHAR *dst, int dstsize)
+{
+	if(0==MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,src,-1,dst,dstsize))
+	{
+		if(0==MultiByteToWideChar(1251,0,src,-1,dst,dstsize)) dst[0]=0;
+	}
+}
+//======================================================================
+// Проверка, что надпись испорчена кодировкой и её надо заменить
+// Признаки: символ-заменитель U+FFFD, либо строка вида "???? 1" (вместо "Окно 1")
+//======================================================================
+static bool WindowNameBroken(const TCHAR *name)
+{
+	int i, junk=0;
+	bool only_junk=true;
+	if((NULL==name)||(0==name[0])) return false; // Пустая надпись - это не поломка
+	for(i=0;name[i];i++)
+	{
+		TCHAR c=name[i];
+		if(0xFFFD==c) return true;
+		if(_T('?')==c) { junk++; continue; }
+		if((_T(' ')==c)||(c>=_T('0')&&c<=_T('9'))) continue;
+		only_junk=false;
+	}
+	return only_junk && (junk>0);
+}
 int MHSettings::Load2(FILE *f,int wcount)
 {
 	int i,len;
@@ -417,22 +453,35 @@ int MHSettings::Load2(FILE *f,int wcount)
 	for(i=0;i<wcount;i++)
 	{
 		mw=&MagicWindow::magic_wnd[i];
-		// Параметры-циферки
-		if(10!=fscanf_s(f,"%d %d %d %d %d %d %d %d %d %d\n", &mw->active, &mw->mw_color, &mw->x, &mw->y, &mw->width, &mw->height,
-			&mw->button_or_switch, &mw->mouse_or_eytracker, &mw->button_index, &mw->mw_group))
-			return 1;
+		// Параметры-циферки: читаем всю строку целиком и разбираем её
+		if(NULL==fgets(lcbuffer,sizeof(lcbuffer),f)) return 1;
 		{
-			WORD val = old_scancode_order[mw->button_index];
-			if(val == 0xFFFF) {
-				// Disabled key — keep original index as-is
-			} else {
-				for(int si = 0; si < MH_NUM_SCANCODES_EXTRA; si++) {
-					if(dlg_scancodes[si].value == val) {
-						mw->button_index = si;
-						break;
+			unsigned int btn_value=0;
+			// Новый формат: после индекса клавиши идёт проверочное значение скан-кода
+			if(11==sscanf_s(lcbuffer,"%d %d %d %d %d %d %d %d %d %d %x",
+				&mw->active, &mw->mw_color, &mw->x, &mw->y, &mw->width, &mw->height,
+				&mw->button_or_switch, &mw->mouse_or_eytracker, &mw->button_index, &mw->mw_group, &btn_value))
+			{
+				// 0xFFFF — "ничего" или запрещённая клавиша: индекс сохраняем как есть
+				if(btn_value != 0xFFFF) {
+					for(int si=0; si<MH_NUM_SCANCODES_EXTRA; si++) {
+						if(dlg_scancodes[si].value == (WORD)btn_value) { mw->button_index=si; break; }
 					}
 				}
 			}
+			else if(10==sscanf_s(lcbuffer,"%d %d %d %d %d %d %d %d %d %d",
+				&mw->active, &mw->mw_color, &mw->x, &mw->y, &mw->width, &mw->height,
+				&mw->button_or_switch, &mw->mouse_or_eytracker, &mw->button_index, &mw->mw_group))
+			{
+				// Старый формат (до reorder): пересчитываем индекс по старому порядку
+				WORD val = old_scancode_order[mw->button_index];
+				if(val != 0xFFFF) {
+					for(int si=0; si<MH_NUM_SCANCODES_EXTRA; si++) {
+						if(dlg_scancodes[si].value == val) { mw->button_index=si; break; }
+					}
+				}
+			}
+			else return 1;
 		}
 		// Обязательно применить к окнам!
 		// Корректируем размеры: в файле хранятся размеры клиентской области,
@@ -450,8 +499,11 @@ int MHSettings::Load2(FILE *f,int wcount)
 			if('\n'==lcbuffer[len-1]) lcbuffer[len-1]=0;
 			if(len>1 && '\r'==lcbuffer[len-2]) lcbuffer[len-2]=0;
 		}
-		int wideLen = MultiByteToWideChar(CP_UTF8,0,lcbuffer,-1,mw->mw_name,_countof(mw->mw_name));
-		if(wideLen == 0) mw->mw_name[0] = 0;
+		if(len>0) DecodeWindowName(lcbuffer, mw->mw_name, _countof(mw->mw_name));
+		else mw->mw_name[0]=0;
+		// Если надпись нечитаема (битая кодировка) - подставляем штатную "Окно N"
+		if(WindowNameBroken(mw->mw_name))
+			StringCchPrintfW(mw->mw_name, _countof(mw->mw_name), L"Окно %d", i+1);
 		// Обновляем заголовок окна сразу после загрузки имени
 		if(mw->MWhwnd) SetWindowText(mw->MWhwnd, mw->mw_name);
 	}

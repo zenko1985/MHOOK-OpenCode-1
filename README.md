@@ -1,351 +1,524 @@
-================================================================================
-                      PROJECT: MHOOK - Structure Description
-================================================================================
+# MHook — из мыши в клавиатуру
 
-General Information:
---------------------
-MHook - Windows application for emulating keyboard presses via
-mouse and eye-trackers (Tobii REX, TheEyeTribe)
-Platform: Windows (Win32 API)
-Architecture: "Strategy" Pattern with central abstract class
+**Версия:** 2 (28.07)  
+**Платформа:** Windows (Win32 API, x64)  
+**Язык:** C++ / MSVC  
+**Среда:** Visual Studio 2022 (MHook64.sln)  
 
-================================================================================
-                            DIRECTORY STRUCTURE
-================================================================================
+---
 
-C:\Projects\mhook\source mhook\
-  .vs\                           Visual Studio settings
-  x64\Debug\                     Compiled objects (ignore)
-  MHook64.sln                    Solution file
-  MHook64.vcxproj                Project file
-  MHook64.vcxproj.filters       Project filters
-  resource.rc                    Application resources
+## 1. Назначение
 
-================================================================================
-                              PROJECT FILES
-================================================================================
+MHook — Windows-приложение, которое перехватывает движения мыши (через низкоуровневый `WH_MOUSE_LL` хук) и эмулирует нажатия клавиш клавиатуры. Поддерживаются также айтрекеры (Tobii 4C/EyeX/REX, TheEyeTribe) и геймпад (XInput).
 
-HEADER FILES (.h):
-------------------
-HookHandler.h          Base abstract class for hook handlers
-hh1.h, hh1a.h          Modes 1 and 1a (standard)
-hh2.h                  Mode 2 (direction preview)
-hh3.h                  Mode 3 (fast movement filtering)
-hh4.h                  Mode 4 (gas/turn independently)
-hh5.h                  Mode 5 (8 keys, auto-click)
-hh6.h                  Mode 6 (scroll mode)
-hh7.h                  Mode 7 (empty mode)
-MHKeypad.h             Keyboard module
-MVector.h              Vector module for movement analysis
-Settings.h             Settings module
-MagicWindow.h          Magic windows
-Bitmap.h               Graphics resources
-TobiiREX.h             Eye-tracker Tobii REX
-TET.h                  Eye-tracker TheEyeTribe
-CircleWindow.h         Circle window (indicator)
-MHRepErr.h             Error handling
-WM_USER_messages.h     Windows user messages
-CursorDot.h            Dot cursor (for eye-tracker)
-resource.h             Resource definitions
+Основное применение — игры, где управление стрелками/WASD неудобно, либо требуется эмуляция клавиш взглядом.
 
-SOURCE FILES (.cpp):
---------------------
-HookHandler.cpp        Base MHookHandler implementation
-hh1.cpp - hh6.cpp      Mode implementations 1-6
-MHKeypad.cpp           Keyboard module implementation
-MVector.cpp            Vector module implementation
-Settings.cpp           Main settings dialog
-Settings2.cpp          Magic windows dialog
-MagicWindow.cpp        Magic windows implementation
-Bitmap.cpp             Graphics implementation
-TobiiREX.cpp           Tobii REX implementation
-TET.cpp                TheEyeTribe implementation
-CircleWindow.cpp       Circle window implementation
-HookProc.cpp           Main mouse hook procedure
-OnGazeData.cpp         Eye-tracker data processing
-MHRepErr.cpp           Error handling implementation
-MH001.cpp, MH002.cpp   Application entry points
+---
 
-RESOURCES:
-----------
-resource.rc            Resource file
-resource.h             Resource header
-bm4w.bmp               4 directions (white)
-bm4wred.bmp            4 directions (red)
-bm8w.bmp               8 directions (white)
-bm8wred.bmp            8 directions (red)
+## 2. Структура проекта
 
-================================================================================
-                            CLASSES AND HIERARCHY
-================================================================================
+```
+source mhook/
+├── .vs/                          # Настройки Visual Studio
+├── x64/Debug|Release/            # Результаты сборки
+├── MHook64.sln                   # Решение Visual Studio 2022
+├── MHook64.vcxproj               # Файл проекта
+├── MHook64.vcxproj.user          # Пользовательские настройки проекта
+├── app.manifest                  # Манифест (DPI, Windows 7-11)
+├── build.bat                     # Скрипт сборки + UPX упаковка
+│
+├── MH001.cpp                     # WinMain, инициализация, цикл сообщений
+├── MH002.cpp                     # WndProc (оконная процедура главного окна)
+│
+├── HookHandler.h / .cpp          # Базовый абстрактный класс MHookHandler
+├── HookProc.cpp                  # Глобальная функция Low-level Mouse Hook
+│
+├── hh1.h / .cpp                  # Режим 1 (стандартный)
+├── hh1a.h / .cpp                 # Режим 1a (упрощённый)
+├── hh2.h / .cpp                  # Режим 2 (предпросмотр направления)
+├── hh3.h / .cpp                  # Режим 3 (фильтрация скорости)
+├── hh4.h / .cpp                  # Режим 4 (газ/поворот независимо)
+├── hh5.h / .cpp                  # Режим 5 (8 клавиш + автоклик)
+├── hh6.h / .cpp                  # Режим 6 (скролл)
+├── hh7.h                         # Режим 7 (пустышка, только окна)
+│
+├── Settings.h / .cpp             # Настройки, диалог, сохранение/загрузка
+├── Settings2.cpp                 # Диалог настроек волшебных окон + айтрекеров
+├── RecentFiles.h / .cpp          # Список недавних .MHOOK файлов (в т.ч. встроенных)
+│
+├── MHKeypad.h / .cpp             # Эмуляция нажатий клавиш (SendInput)
+├── MVector.h / .cpp              # Анализ вектора движения мыши
+├── MagicWindow.h / .cpp          # Волшебные окна (24 шт.)
+├── Bitmap.h / .cpp               # Графика: битмапы 4/8 направлений
+├── CircleWindow.h / .cpp         # Окно-кружок для айтрекера (точка взгляда)
+├── CursorDot.h / .cpp            # Красная точка-курсор поверх мыши
+│
+├── TobiiREX.h / .cpp             # Поддержка Tobii 4C/EyeX/REX
+├── TET.h / .cpp                  # Поддержка TheEyeTribe
+├── OnGazeData.cpp                # Обработка данных айтрекера (общая)
+│
+├── Gamepad.h / .cpp              # Поддержка геймпада (XInput)
+├── MHRepErr.h / .cpp             # Сообщения об ошибках
+├── WM_USER_messages.h            # Пользовательские WM_USER сообщения
+│
+├── resource.h / resource.rc      # Ресурсы (диалоги)
+├── EmbeddedSettings.bin          # Встроенные конфиги (.MHOOK внутри .exe)
+├── EmbeddedBitmaps.bin           # Встроенные битмапы джойстика (deflate, 53 КБ)
+│
+├── generate_embedded.py         # Генерация EmbeddedSettings.bin
+├── generate_embedded_bitmaps.py # Генерация/восстановление EmbeddedBitmaps.bin (--extract)
+├── fix_encoding.py               # Исправление кодировки
+├── create_shortcuts.ps1          # Создание ярлыков
+├── build.bat                     # Сборка Release и Release_Win7 (x64)
+├── build_xp.bat                  # Сборка варианта под Windows XP
+│
+├── AGENTS.md                     # Подсказки для ИИ-ассистентов
+└── LICENSE                       # Лицензия
+```
 
-1. HOOK HANDLER HIERARCHY (Strategy Pattern)
---------------------------------------------
+---
 
-BASE CLASS: MHookHandler
-  +-- MHookHandler1      (Mode 1 - standard)
-  +-- MHookHandler1a     (Mode 1a - with timeout)
-  +-- MHookHandler2      (Mode 2 - preview)
-  +-- MHookHandler3      (Mode 3 - speed filtering)
-  +-- MHookHandler4      (Mode 4 - gas/turn)
-  +-- MHookHandler5      (Mode 5 - 8 keys, auto-click)
-  +-- MHookHandler6      (Mode 6 - scroll)
-  +-- MHookHandler7      (Mode 7 - empty)
+## 3. Архитектура
 
-MHookHandler Fields:
-  rbutton_pressed      bool    right button state
-  initialized          bool    initialization flag
-  dx, dy               LONG    accumulated coordinates
-  last_x, last_y       LONG    last coordinates
-  position_mem         int     memorized position
-  last_button5_time    DWORD   last 5th button time
-  mouse_path_squared   int     accumulated mouse path
+### 3.1. Поток выполнения
 
-MHookHandler Virtual Methods:
-  OnMouseMove(LONG x, LONG y)     int     process mouse movement
-  OnMouseScroll(LONG x, LONG y)   void    process scroll
-  OnRDown()                       bool    right button down
-  OnRUp()                         bool    right button up
-  OnLDown()                       void    left button down
-  OnLUp()                         void    left button up
-  GetPosition()                   int     get current position
-  OnTimer()                       void    timer handler
-  OnDraw(HDC, LONG)               void    render UI
-  Halt()                          void    stop
-  HaltGeneral()                   void    general reset
-  Deinitialize()                  void    deinitialize
-  TopLeftCornerTimer()            void    mode switcher
-  OnFastMove(LONG dx, LONG dy)    void    handle fast movement
+```
+WinMain (MH001.cpp)
+  ├── Инициализация DPI Awareness
+  ├── Определение размеров экрана
+  ├── Создание кистей, шрифтов, пера
+  ├── CircleWindow::Init() — окно-кружок для айтрекера
+  ├── Загрузка конфигурации по умолчанию (default.MHOOK)
+  ├── Регистрация класса главного окна
+  ├── Создание главного окна (MHhwnd)
+  ├── MagicWindow::Init() — создание 24 волшебных окон
+  ├── MHSettings::SettingsDialogue() — диалог настроек
+  ├── SetWindowsHookEx(WH_MOUSE_LL, HookProc, ...) — установка хука
+  └── Цикл сообщений GetMessage()
+        └── WndProc (MH002.cpp) — обработка таймеров, отрисовка, D&D
+```
 
-2. KEYBOARD MODULE: MHKeypad (static class)
--------------------------------------------
-Methods:
-  Init(int* scancodes, int extra_scancodes[5])    int   initialize
-  Reset(int shift=0)                              void  reset all keys
-  GetPosition()                                   int   get position
-  Press(int pos, bool down, int shift=0)          void  press key (4/8)
-  Press4(int pos, bool down, int shift=0)         void  press 1 of 4
-  Press8(int pos, bool down)                      void  press 1 of 8
+### 3.2. HookProc (HookProc.cpp)
 
-Fields:
-  keypad_position   int     current position (-1 = no press)
-  scancode[17]      int     array of key scan codes
+Глобальный Low-level Mouse Hook (`WH_MOUSE_LL`). Перехватывает:
+- **WM_MOUSEMOVE** — передаёт текущему `MHookHandler` через `OnMouseMove()`.
+  - Определяет нахождение в углах экрана для переключения режимов (левый нижний — `flag_left_button_key`, правый нижний — открыть диалог настроек).
+  - Останавливает движение мыши при нажатой правой кнопке, если включен `flag_no_move_right_mb`.
+  - При одновременном нажатии левой и правой кнопки переходит в режим скролла (для режима 6).
+  - Вызывает `OnMouseScroll()` при скролле.
+- **WM_RBUTTONDOWN / WM_RBUTTONUP** — вызывает `OnRDown()` / `OnRUp()`.
+  - Двойной щелчок правой кнопкой останавливает/возобновляет эмуляцию (`flag_stop_emulation`).
+  - Если `flag_inside_window` — начало скролла внутри главного окна.
+  - Если `flag_right_mb_iskey` — правая кнопка эмулирует клавишу.
+- **WM_LBUTTONDOWN / WM_LBUTTONUP** — вызывает `OnLDown()` / `OnLUp()` (включён/выключен `flag_left_button_key`).
 
-3. VECTOR MODULE: MHVector (static class)
------------------------------------------
-Methods:
-  Reset()                         void  reset vector
-  NewValues(LONG dx, LONG dy)     int   process movement
+---
 
-Returns:
-  0-7 : direction position
-  -1  : direction not changed
-  -2  : not enough movement
+## 4. Классы и иерархия
 
-4. SETTINGS MODULE: MHSettings (static class)
----------------------------------------------
-Fields:
-  hh                          MHookHandler*   current handler
-  mode                        int             current mode (1-7)
-  num_positions               int             number of positions (4/8)
-  mouse_sensitivity           int             mouse sensitivity
-  timeout_after_move          DWORD           timeout after movement
-  minimal_mouse_speed         LONG            minimum speed
-  deadx, deady                LONG            dead zone
-  flag_enable_speed_button    bool            speed button
-  flag_2moves                 bool            double movement
-  flag_alt2                   bool            alternative layout
-  flag_right_mb_iskey         bool            right button as key
-  flag_mode5autoclick         bool            mode 5 auto-click
-  magic_wnd[24]               MagicWindow     magic windows array
+### 4.1. HookHandler (Strategy Pattern)
 
-Methods:
-  SettingsDialogue(HWND)                    int    main dialog
-  OpenMHookConfig()                         void   load configuration
-  SaveMHookConfig()                         void   save configuration
-  GetNumPositions()/SetNumPositions()       int/void   number of positions
-  GetMouseSensitivity()/SetMouseSensitivity()  int/void   sensitivity
+**Базовый класс:** `MHookHandler` (HookHandler.h)
 
-5. MAGIC WINDOWS: MagicWindow (class)
--------------------------------------
-Instance Fields:
-  myindex              int     window index (0-23)
-  MWhwnd               HWND    window handle
-  active               bool    is active
-  mw_name[256]         TCHAR   name
-  mw_color             int     color (0=green,1=yellow,2=red,3=blue)
-  x, y, width, height  int     coordinates and size
-  button_or_switch     int     type (0=button, 1=switch)
-  mouse_or_eytracker   int     source (0=mouse, 1=eye-tracker)
-  button_index         int     key index (0-103)
-  mw_group             int     group (0-4)
-  pressed              bool    is pressed
-  f_inside_window      bool    cursor inside
+```
+MHookHandler (абстрактный)
+  ├── MHookHandler1  (hh1) — Режим 1
+  ├── MHookHandler1a (hh1a) — Режим 1a
+  ├── MHookHandler2  (hh2) — Режим 2
+  ├── MHookHandler3  (hh3) — Режим 3
+  ├── MHookHandler4  (hh4) — Режим 4
+  ├── MHookHandler5  (hh5) — Режим 5
+  ├── MHookHandler6  (hh6) — Режим 6
+  └── MHookHandler7  (hh7) — Режим 7 (пустышка)
+```
 
-Static Methods:
-  Init()                          void   create 24 windows
-  ShowEditable()                  void   edit mode
-  ShowRuntime()                   void   runtime mode
-  Hide()                          void   hide windows
-  OnTimer5()                      void   mouse movement timer
-  Press()                         void   press/release key
-  PressSpecial(BYTE operation)    void   special operations
+**Поля базового класса:**
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `rbutton_pressed` | `bool` | Состояние правой кнопки мыши |
+| `initialized` | `bool` | Флаг инициализации |
+| `dx, dy` | `LONG` | Накопленное смещение мыши |
+| `last_x, last_y` | `LONG` | Последние координаты мыши |
+| `position_mem` | `int` | Запомненная позиция |
+| `last_button5_time` | `DWORD` | Время последнего нажатия 5-й кнопки |
+| `mouse_path_squared` | `LONG` | Накопленный квадрат пути мыши |
 
-6. EYE-TRACKERS
----------------
+**Виртуальные методы:**
+| Метод | Описание |
+|-------|----------|
+| `OnMouseMove(x, y)` | Обработка движения мыши |
+| `OnMouseScroll(x, y)` | Обработка скролла (по умолч. = OnMouseMove) |
+| `OnRDown()` / `OnRUp()` | Правая кнопка нажата/отпущена |
+| `OnLDown()` / `OnLUp()` | Левая кнопка нажата/отпущена |
+| `GetPosition()` | Текущая позиция (нажатая клавиша) |
+| `OnTimer()` | Таймер отпускания клавиш |
+| `OnDraw(hdc, window_size)` | Отрисовка состояния |
+| `Halt()` | Останов |
+| `HaltGeneral()` | Сброс общих флагов |
+| `Deinitialize()` | Временная деактивация (пауза, скролл) |
+| `TopLeftCornerTimer()` | Переключение режима левой кнопки |
+| `OnFastMove(dx, dy)` | Обработка быстрого движения (5-я кнопка) |
 
-a) BKBTobiiREX (Tobii REX, Tobii 4C, EyeX)
-   Init(HWND)                      int    initialize
-   Halt(HWND)                      void   stop
-   Loads tobii_stream_engine.dll
+### 4.2. MHKeypad (статический класс)
 
-b) BKBTET (TheEyeTribe)
-   Init(HWND)                      int    TCP connection (port 6555)
-   Halt(HWND)                      void   stop
-   heartbeat_thread                thread connection keep-alive
+Эмуляция нажатий клавиш через `SendInput`.
 
-Data Structures:
-  toit_gaze_data:
-    timestamp       uint64_t
-    toit_status     int
-    left, right     toit_eye (eye_data)
+| Метод | Описание |
+|-------|----------|
+| `Init(scancodes...)` | Инициализация 17 скан-кодов |
+| `Reset(shift)` | Отпустить все нажатые |
+| `GetPosition()` | Текущая нажатая клавиша |
+| `Press(pos, down, shift)` | Нажать/отпустить (4 или 8 направлений) |
+| `Press4(pos, down, shift)` | Нажать 1 из 4 базовых клавиш |
+| `Press8(pos, down)` | Нажать 1 из 8 независимых клавиш |
 
-7. GRAPHICS MODULES
--------------------
+Скан-коды с префиксом `0xE0` — расширенные клавиши (KEYEVENTF_EXTENDEDKEY).  
+Скан-коды `0xE110` / `0xE111` — эмуляция ЛКМ / ПКМ через `INPUT_MOUSE`.
 
-a) MHBitmap (static class)
-   Init(HWND)                      void   load bitmaps
-   Halt()                          void   free resources
-   OnDraw(HDC, int position)       void   render position
+Поддерживается вторая клавиша для позиций 5 (ЛКМ) и 10 (ПКМ) через индексы 15 и 16.
 
-b) CircleWindow (static class)
-   Init()                          void   create window
-   Show()                          void   show
-   Hide()                          void   hide
-   CircleHwnd                      HWND   window handle
+### 4.3. MHVector (статический класс)
 
-8. HELPER MODULES
------------------
+Анализирует накопленные `dx, dy` и определяет направление движения.
 
-a) MHRepErr (error handling)
-   MHReportError(TCHAR* file, TCHAR* func, int line, HWND)
-   MHReportError(TCHAR* error, HWND)
-   MHReportError(int tobii_error_code, ...)
+| Метод | Описание |
+|-------|----------|
+| `Reset()` | Сброс вектора |
+| `NewValues(dx, dy)` | Определение направления |
 
-b) HookProc (global function)
-   LRESULT CALLBACK HookProc(int disabled, WPARAM, LPARAM)
-   Handles: WM_MOUSEMOVE, WM_RBUTTONDOWN/UP, WM_LBUTTONDOWN/UP
+**Возвращает:**
+- `0-7` — направление (в зависимости от 4 или 8 позиций)
+- `-1` — направление не изменилось
+- `-2` — недостаточное перемещение (меньше `mouse_sensitivity` пикселей)
 
-c) on_gaze_data (global function)
-   void on_gaze_data(toit_gaze_data* data, void* user_data)
-   Eye-tracker data processing
+Углы вычисляются через `atan2`. Для 4 направлений угол смещается на +135°, для 8 — на +112°.
 
-================================================================================
-                              OPERATING MODES
-================================================================================
+### 4.4. MHSettings (статический класс)
 
-Mode 1 (MHookHandler1):
-  Standard emulation mode
-  Double movement (flag_2moves_mode1)
-  Two alternative layouts (flag_alt2)
-  Direction change on the fly
+Центральное хранилище всех настроек и текущего обработчика (`hh`).
 
-Mode 1a (MHookHandler1a):
-  Simplified version of mode 1
-  Timeout between presses
+| Поле | Тип | По умолч. | Описание |
+|------|-----|-----------|----------|
+| `mode` | `int` | 1 | Текущий режим (1-7) |
+| `num_positions` | `int` | 4 | 4 или 8 направлений |
+| `mouse_sensitivity` | `int` | 1 | Чувствительность (пиксели) |
+| `timeout_after_move` | `DWORD` | 100 | Таймаут после движения (мс) |
+| `time_between_pushes` | `DWORD` | 100 | Между нажатиями (мс) |
+| `minimal_mouse_speed` | `LONG` | 900 | Порог быстрого движения |
+| `deadx, deady` | `LONG` | 100 | Мёртвые зоны для режима 4 |
+| `circle_scale_factor` | `int` | 0 | Чувствительность колеса (режим 5) |
 
-Mode 2 (MHookHandler2):
-  Direction preview
-  Mouse movement shows direction
-  Right button press activates key
+**Флаги:**
+| Флаг | Описание |
+|------|----------|
+| `flag_enable_speed_button` | Быстрое движение → 5-я кнопка |
+| `flag_2moves` | Два шага для режима 4 |
+| `flag_2moves_mode1` | Два шага для режима 1 |
+| `flag_change_direction_ontheway` | Смена направления на ходу |
+| `flag_right_mb_iskey` | ПКМ как клавиша |
+| `flag_alt2` | Альтернативные раскладки |
+| `flag_no_move_right_mb` | Блокировать движение мыши при ПКМ |
+| `flag_mode5autoclick` | Автоклик в режиме 5 |
+| `flag_right_mb_doubleclick` | Стоп эмуляции по двойному ПКМ |
+| `flag_left_mb_push_twice` | Двойное нажатие при ЛКМ |
+| `flag_right_mb_push_twice` | Двойное нажатие при ПКМ |
+| `flag_downall` | Вниз+вбок = просто вниз |
+| `flag_up_immediately` | Тут же отпустить (режим 1) |
+| `flag_skip_fast` | Игнорировать быстрое движение (режим 3) |
+| `flag_autoclick_lmb` | Автокликер для ЛКМ |
+| `flag_autoclick_ahk` | Запуск AHK скрипта при автоклике |
+| `flag_wheel_ahk` | Запуск AHK скрипта для колесика |
+| `flag_cursor_visible` | Красная точка под курсором |
+| `flag_gamepad_enabled` | Включить геймпад |
 
-Mode 3 (MHookHandler3):
-  Fast movement filtering
-  Mouse speed analysis
-  serial_fasts, oast_allowed, b2st_allowed
+**Файловая система настроек:**
+- Формат: `.MHOOK` (текстовый, ключ + значение)
+- Автоопределение конфига по заголовку окна игры (Settings.cpp, таймер 101)
+- Drag-and-drop `.MHOOK` на диалог настроек
+- Поддержка `.MHOO` (старый формат) — автоматом переименовывается в `.MHOOK`
 
-Mode 4 (MHookHandler4):
-  Gas/turn independently
-  Independent X and Y axis control
-  One axis can work in mode 3
+### 4.5. MagicWindow (24 окна)
 
-Mode 5 (MHookHandler5):
-  8 independent keys (Press8)
-  Works only with right button pressed
-  Auto-click on movement
-  Wheel selection (circle_scale_factor)
+Волшебные окна — прозрачные окна поверх всех, которые нажимают клавиши при наведении мыши (или взгляда айтрекера).
 
-Mode 6 (MHookHandler6):
-  Scroll mode
-  Mouse wheel emulation
-  Overrides OnMouseScroll
+| Поле | Описание |
+|------|----------|
+| `active` | Видимо ли окно |
+| `mw_name[256]` | Текст в окне |
+| `mw_color` | 0=зелёный, 1=жёлтый, 2=красный, 3=синий |
+| `x, y, width, height` | Координаты и размер (клиентская область) |
+| `button_or_switch` | 0=кнопка (отпускается при выходе), 1=переключатель |
+| `mouse_or_eytracker` | 0=мышь, 1=айтрекер |
+| `button_index` | Индекс в массиве скан-кодов |
+| `mw_group` | Группа (0-4). Взаимоисключающие кнопки в группе |
 
-Mode 7 (MHookHandler7):
-  Empty mode
-  Windows only without mouse processing
-  Pass-through mode
+**Специальные операции (скан-коды 0xE1xx):**
+| Код | Описание |
+|-----|----------|
+| `0xE101` | ЛКМ + F12 (клик в центр окна + F12) |
+| `0xE102` | Автоматическое движение мыши влево |
+| `0xE103` | Автоматическое движение мыши вправо |
+| `0xE104` | Автоскролл туда |
+| `0xE105` | Автоскролл сюда |
 
-================================================================================
-                           MODULE DEPENDENCIES
-================================================================================
+**Технические детали:**
+- Окна создаются с `WS_EX_LAYERED`, `WS_EX_TOPMOST`, `WS_EX_TOOLWINDOW`
+- Прозрачность 25% в покое, 75% при наведении
+- Используется недокументированный `SetWindowBand()` (user32.dll) для обхода StartAllBack
+- Каждую секунду принудительно поднимаются поверх всех (таймер 5, 40 тиков)
 
+---
+
+## 5. Режимы работы
+
+### Режим 1 — Стандартный (hh1)
+- 4 или 8 направлений
+- Два варианта нажатия:
+  - Без ПКМ: движение → нажатие клавиши
+  - С ПКМ: альтернативная раскладка (сдвиг +6)
+- `flag_2moves_mode1`: два шага для прохождения противоположного направления
+- `flag_change_direction_ontheway`: смена направления без отпускания
+- `flag_downall`: вниз+вбок = просто вниз
+- `flag_up_immediately`: мгновенное отпускание
+- `flag_alt2`: выбор раскладки движением вправо/влево при ПКМ
+
+### Режим 1a — Упрощённый (hh1a)
+- Без альтернативных раскладок
+- Повторное движение в том же направлении — с таймаутом `time_between_pushes`
+- Нажатие + сразу отпускание (Press + keyup)
+
+### Режим 2 — Предпросмотр (hh2)
+- Движение показывает направление (квадратик в окне MHook)
+- Нажатие ПКМ фиксирует клавишу
+- Отпускание ПКМ — отпускание клавиши
+
+### Режим 3 — Фильтрация скорости (hh3)
+- Анализирует скорость движения: FAST / OAST / BAST / SLOW
+- `flag_skip_fast`: игнорировать быстрые рывки
+- `IsOpposite()` — противоположное направление обнуляет счётчики
+- Сдвиг +6 при ПКМ (альтернативная раскладка)
+
+### Режим 4 — Газ/Поворот (hh4)
+- Независимые оси X и Y
+- Матрица 3×3 (8 направлений + центр)
+- Мёртвые зоны: `deadx`, `deady`
+- `flag_2moves`: два шага для оси X
+- Одна из осей может работать в режиме 3 (`mode3axe`)
+- Визуализация квадратиков (жёлтый/зелёный)
+
+### Режим 5 — 8 клавиш + автоклик (hh5)
+- 8 независимых клавиш (Press8)
+- Работает только при нажатой ПКМ
+- `circle_scale_factor` > 0: выбор клавиши движением по кругу
+- `flag_mode5autoclick`: автоклик ЛКМ при отпускании ПКМ (если было движение)
+- Если движения не было — нажатие «сброс» (10-я клавиша)
+
+### Режим 6 — Скролл (hh6)
+- Перегружает `OnMouseScroll()`
+- Движение вверх/вниз — клавиши, скролл — `MOUSEEVENTF_WHEEL`
+- 4 позиции, ПКМ не подавляется
+
+### Режим 7 — Пустышка (hh7)
+- Ничего не делает, мышь проходит насквозь
+- Только для волшебных окон
+
+---
+
+## 6. Айтрекеры
+
+### Tobii 4C / EyeX / REX (TobiiREX.cpp)
+- Загружает `tobii_stream_engine.dll` динамически через `LoadLibrary`
+- Находит первое устройство через `tobii_enumerate_local_device_urls`
+- Подписывается на `tobii_gaze_point_subscribe`
+- Создаёт поток `TobiiStreamThread`, который циклически вызывает `tobii_wait_for_callbacks`
+- Полученные координаты передаёт в `on_gaze_data()`
+
+### TheEyeTribe (TET.cpp)
+- TCP-соединение с `127.0.0.1:6555`
+- Отправляет JSON: `set push` для получения данных в реальном времени
+- Два потока: `HeartBeatThread` (раз в секунду) и `ReaderThread` (парсинг JSON)
+- Парсит JSON-фреймы через `sscanf` (два шаблона: `fix:true` / `fix:false`)
+- Координаты передаёт в `on_gaze_data()`
+
+### OnGazeData (общий)
+- Буфер на 5 последних позиций
+- Для активации окна нужно 3 из 5 попаданий (`MH_EYETRACKER_MIN_REPEAT=3`)
+- Взаимодействует с `MagicWindow::Press()` для эмуляции нажатий
+- Двигает `CircleWindow` (кружок взгляда)
+
+---
+
+## 7. Геймпад (XInput)
+
+**Файлы:** `Gamepad.h/.cpp`
+
+- Использует `XInputGetState` для опроса до 4 геймпадов
+- Левый стик → движение мыши
+- Кнопки A/B/X/Y и D-Pad → клики мыши и скролл
+- Чувствительность настраивается
+- Включается/выключается флагом `flag_gamepad_enabled`
+
+---
+
+## 8. Дополнительные модули
+
+### Bitmap (Bitmap.h/.cpp)
+- Загружает 4 картинки джойстика (4/8 направлений, обычные и красные) из контейнера
+- Рисует 4/8-позиционный джойстик в главном окне
+- Подсвечивает красным нажатые ЛКМ/ПКМ
+- **Сжатие**: картинки не хранятся в exe как BITMAP-ресурсы (4 × 480 КБ = 1,92 МБ).
+  Вместо этого `generate_embedded_bitmaps.py` пакует их deflate в один файл
+  `EmbeddedBitmaps.bin` (53 КБ), который встроен как `IDR_EMBEDDEDBITMAPS` (RCDATA).
+  При старте `MHBitmap::Init` распаковывает контейнер через miniz и создаёт HBITMAP
+  через `SetDIBits`. Формат контейнера тот же, что у `EmbeddedSettings.bin`:
+  `'ZLIB'` + `DWORD` размера + zlib-поток. Экономия в exe — 1,82 МБ (−72%)
+- **Исходных `bm*.bmp` в дереве исходников нет** — единственный источник правды это
+  `EmbeddedBitmaps.bin`, из которого они восстанавливаются без потерь одной командой:
+  `python generate_embedded_bitmaps.py --extract`. Цикл правки картинки:
+  `--extract` → отредактировать `.bmp` → пересобрать контейнер → удалить `.bmp`.
+
+### CircleWindow (CircleWindow.h/.cpp)
+- Прозрачное окно 100×100 с зелёным кружком
+- Отображает точку взгляда айтрекера
+- Двигается через `WM_USER_MOVEWINDOW`
+
+### CursorDot (CursorDot.h/.cpp)
+- Красная точка (6x6 пикселей) под курсором мыши
+- Полупрозрачная (200/255), клики проходят сквозь (`HTTRANSPARENT`)
+- Апдейт позиции в таймере 5 и в HookProc при каждом WM_MOUSEMOVE
+
+### MHRepErr (MHRepErr.h/.cpp)
+- Три перегрузки: системная ошибка, текстовая, ошибка Tobii SDK
+- Показывает MessageBox с деталями
+
+### RecentFiles (RecentFiles.h/.cpp)
+- Список `.MHOOK` файлов из директории программы
+- Встроенные конфиги из `EmbeddedSettings.bin` (ресурс `IDR_EMBEDDEDSETTINGS`)
+- Автоподбор конфига по заголовку окна игры
+- Фильтрация: если файл есть на диске — встроенная копия скрывается
+
+---
+
+## 9. Горячие углы экрана
+
+В `HookProc` обрабатываются два угла экрана:
+
+| Угол | Действие |
+|------|----------|
+| **Левый нижний** | Переключение `flag_left_button_key` (левая кнопка как клавиша вкл/выкл) + звуковой сигнал |
+| **Правый нижний** | Открытие диалога настроек (+ выгрузка AHK-скриптов) |
+
+Таймаут удержания: `timeout_mouse_switch` (по умолчанию 1500 мс).
+
+---
+
+## 10. Конфигурация (.MHOOK)
+
+Формат файла — текстовый, каждая строка: `ИмяПараметра значение [проверочное_значение]`.
+
+Поддерживается 47 параметров (см. `save_struct` в Settings.cpp):
+- `Sensitivity` — чувствительность
+- `Button0`..`Button16` — скан-коды клавиш (3 раскладки × 5-6 кнопок + доп. клавиши)
+- `DeadzoneX`, `DeadzoneY` — мёртвые зоны
+- `Mode3Axe` — ось для режима 3 внутри режима 4
+- `FastSpeed` — порог быстрой скорости
+- `Directions` — 4 или 8
+- `Mode` — режим 1-7
+- `TimeoutMove` — таймаут после движения
+- `FastPush`..`CursorVisible` — флаги
+- `MagicWindows` — 24 волшебных окна
+
+Автозагрузка: при запуске ищется `default.MHOOK` в директории программы (MH001.cpp:82).
+
+Автоподбор по окну (функция Settings.cpp таймер 101):
+- Пользователь нажимает «Загрузить по окну» (IDC_BUTTON_LOAD_BY_WINDOW)
+- Через 2 секунды ищется активное окно игры
+- Заголовок очищается от спецсимволов и сравнивается с именами `.MHOOK` файлов
+- Наиболее подходящий конфиг загружается автоматически
+
+---
+
+## 11. Интеграция с AHK
+
+При включении чекбоксов в диалоге настроек запускаются внешние `.exe` файлы:
+- `Авто клик.exe` — автокликер (запускается при `flag_autoclick_ahk`)
+- `Колёсико.exe` — эмуляция колесика (запускается при `flag_wheel_ahk`)
+
+При открытии диалога через правый нижний угол — AHK-процессы завершаются принудительно (через `TerminateProcess`).
+
+---
+
+## 12. Сборка
+
+**Требования:**
+- Visual Studio 2022 (MSBuild v18)
+- Windows SDK 10+
+- UPX (опционально, для сжатия)
+
+**Команда:**
+```cmd
+build.bat
+```
+
+Или вручную:
+```cmd
+MSBuild.exe MHook64.sln /p:Configuration=Release /p:Platform=x64
+upx -9 x64\Release\MHook64.exe
+```
+
+**Манифест (app.manifest):**
+- DPI: `PerMonitorV2` (через `SetProcessDpiAwareness` + манифест)
+- Поддержка Windows 7, 8, 8.1, 10, 11
+
+---
+
+## 13. Зависимости модулей
+
+```
 MHookHandler (abstract)
-    +-- MHookHandler1  --> MHVector, MHKeypad, MHSettings
-    +-- MHookHandler1a --> MHVector, MHKeypad
-    +-- MHookHandler2  --> MHVector, MHKeypad
-    +-- MHookHandler3  --> MHVector, MHKeypad
-    +-- MHookHandler4  --> MHKeypad, MVector
-    +-- MHookHandler5  --> MHVector, MHKeypad
-    +-- MHookHandler6  --> MHVector, MHKeypad (overrides OnMouseScroll)
-    +-- MHookHandler7  (empty implementation)
+  +-- MHookHandler1  --> MHVector, MHKeypad, MHSettings
+  +-- MHookHandler1a --> MHVector, MHKeypad
+  +-- MHookHandler2  --> MHVector, MHKeypad
+  +-- MHookHandler3  --> MHVector, MHKeypad
+  +-- MHookHandler4  --> MHKeypad, MHVector
+  +-- MHookHandler5  --> MHVector, MHKeypad
+  +-- MHookHandler6  --> MHVector, MHKeypad
 
 MHSettings
-    +-- Contains: MHookHandler* hh (pointer to current handler)
-    +-- Contains: instances hh1-hh7
-    +-- Uses: MHKeypad, MagicWindow, MHVector
-    +-- Dialog functions work with resources
+  +-- Содержит: MHookHandler* hh (текущий обработчик)
+  +-- Содержит: экземпляры hh1-hh7
+  +-- Использует: MHKeypad, MagicWindow, MHVector
+  +-- Диалоги работают с ресурсами (IDD_DIALOG_SETTINGS)
 
 HookProc
-    +-- Calls: MHSettings::hh->OnMouseMove/OnRDown/OnRUp/OnMouseScroll
-    +-- Calls: MHSettings::hh->OnLDown/OnLUp
-    +-- Manages: flag_stop_emulation, flag_left_button_key
+  +-- Вызывает: MHSettings::hh->OnMouseMove/OnRDown/OnRUp/OnMouseScroll
+  +-- Вызывает: MHSettings::hh->OnLDown/OnLUp
+  +-- Работает с: CursorDot, MagicWindow, MHSettings
 
 MagicWindow
-    +-- Uses: MHRepErr for errors
-    +-- Calls: SendInput for key/mouse emulation
-    +-- Interacts with: Settings2 dialogs
+  +-- Использует: MHRepErr, SendInput, MHSettings
+  +-- Взаимодействует: Settings2 диалог
 
 Eye-trackers
-    +-- BKBTobiiREX --> loads tobii_stream_engine.dll
-    +-- BKBTET --> works via sockets (port 6555)
-    +-- Both call: on_gaze_data() --> interacts with MagicWindow, CircleWindow
+  +-- BKBTobiiREX --> tobii_stream_engine.dll (LoadLibrary)
+  +-- BKBTET --> winsock (127.0.0.1:6555)
+  +-- Оба вызывают: on_gaze_data() --> MagicWindow, CircleWindow
 
-================================================================================
-                            CONSTANTS
-================================================================================
+Gamepad
+  +-- Использует: XInput.lib, MHSettings
+  +-- Эмулирует: SendInput (мышь)
+```
 
-MH_NUM_SCANCODES        105     basic scan codes (103 + ЛКМ + ПКМ)
-MH_NUM_SCANCODES_EXTRA  108     with extra operations
-NUM_MAGIC_WINDOWS       24      number of magic windows
+---
 
-================================================================================
-                            NEW FEATURES
-================================================================================
+## 14. Константы
 
-MOUSE BUTTON CLICK SUPPORT (ЛКМ / ПКМ):
----------------------------------------
-Added "ЛКМ" (Left Mouse Button) and "ПКМ" (Right Mouse Button) options
-- Available in IDC_BUTTON6 and IDC_BUTTON6_1 dropdowns at positions 1-2
-- Special scan codes: 0xE110 (ЛКМ), 0xE111 (ПКМ)
-- Fully functional in all modes including autoclicker feature
-- Works with both primary and secondary key assignments
-- Implemented in MHKeypad::Press4 using SendInput with INPUT_MOUSE
-
-Files Modified:
-- Settings.h: Updated MH_NUM_SCANCODES from 103 to 105
-- Settings.cpp: Added ЛКМ and ПКМ entries to dlg_scancodes array
-- MHKeypad.cpp: Added mouse click handling in Press4 method
-
-================================================================================
-                              END OF DOCUMENT
-================================================================================
+| Константа | Значение | Описание |
+|-----------|----------|----------|
+| `MH_NUM_SCANCODES` | 105 | Базовые скан-коды (103 клавиши + ЛКМ + ПКМ) |
+| `MH_NUM_SCANCODES_EXTRA` | 110 | С расширенными операциями для окон |
+| `NUM_MAGIC_WINDOWS` | 24 | Количество волшебных окон |
+| `MH_EYETRACKER_BUFFER_SIZE` | 5 | Размер буфера айтрекера |
+| `MH_EYETRACKER_MIN_REPEAT` | 3 | Минимум повторений для активации окна |
+| `MH_WINDOW_SIZE` | 200 | Размер главного окна |
+| `MH_NUM_SAVE_LINES` | 47 | Количество сохраняемых параметров |

@@ -386,16 +386,11 @@ END
 //
 // Bitmap
 //
-
-IDB_BITMAP8             BITMAP                  "C:\\Programs\\mhook\\source mhook\\bm8w.bmp"
-
-IDB_BITMAP4             BITMAP                  "C:\\Programs\\mhook\\source mhook\\bm4w.bmp"
-
-IDB_BITMAP4RED          BITMAP                  "C:\\Programs\\mhook\\source mhook\\bm4wred.bmp"
-
-IDB_BITMAP8RED          BITMAP                  "C:\\Programs\\mhook\\source mhook\\bm8wred.bmp"
-
-
+//
+// Битмапы джойстика больше не вставляются как BITMAP-ресурсы.
+// Вместо них — один сжатый файл EmbeddedBitmaps.bin (deflate),
+// распаковка на стороне в Bitmap.cpp через miniz.
+// Раньше это было 1,92 МБ, стало — 53 КБ.
 /////////////////////////////////////////////////////////////////////////////
 //
 // AFX_DIALOG_LAYOUT
@@ -419,9 +414,11 @@ END
 
 IDR_EMBEDDEDSETTINGS    RCDATA                  "EmbeddedSettings.bin"
 
-IDR_AHK_AUTOCLICK       RCDATA                  "..\\Авто клик.ahk"
+IDR_EMBEDDEDBITMAPS     RCDATA                  "EmbeddedBitmaps.bin"
 
-IDR_AHK_WHEEL           RCDATA                  "..\\Колёсико.ahk"
+IDR_AHK_AUTOCLICK       RCDATA                  "Авто клик.ahk"
+
+IDR_AHK_WHEEL           RCDATA                  "Колёсико.ahk"
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -202,6 +202,10 @@ int MHookHandler1::OnMouseMove(LONG _x, LONG _y)
 				SetTimer(MHhwnd,1,MHSettings::timeout_after_move,NULL);
 			}
 		} // правая кнопка нажата
+		// Окно джойстика должно перерисовываться при каждом принятом направлении.
+		// Раньше ThrottledInvalidate() вызывался только при сбросе противоположного
+		// направления, поэтому клавиши уходили в игру, а стрелки не подсвечивались.
+		if(0<=position) ThrottledInvalidate();
 	} // if initialized
 	if(!initialized) initialized=true;
 	last_x=_x;

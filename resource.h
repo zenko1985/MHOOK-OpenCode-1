@@ -4,6 +4,7 @@
 //
 #define IDR_EMBEDDEDSETTINGS            2
 #define IDR_RECENTFILES_CACHE           3
+#define IDR_EMBEDDEDBITMAPS             4
 #define IDD_DIALOG_SETTINGS             101
 #define IDB_BITMAP8                     106
 #define IDB_BITMAP4                     107

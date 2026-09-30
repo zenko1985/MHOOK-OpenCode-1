@@ -3,6 +3,7 @@
 #include "MVector.h"
 #include "MHKeypad.h"
 #include "Settings.h"
+#include "WM_USER_messages.h"
 extern LONG screen_x, screen_y;
 int MHookHandler1a::OnMouseMove(LONG _x, LONG _y)
 {
@@ -27,6 +28,8 @@ int MHookHandler1a::OnMouseMove(LONG _x, LONG _y)
 			{
 				MHKeypad::Tap(position_mem);
 				last_time=time_now;
+				// Без этого окно джойстика не перерисовывается: клавиши жмутся, а картинка стоит
+				ThrottledInvalidate();
 			}
 		}
 	}
