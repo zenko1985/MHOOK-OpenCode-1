@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -27,9 +27,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{FD81674E-F704-47F7-8E53-B80EAE128583}</ProjectGuid>
     <RootNamespace>MHook64</RootNamespace>
-    <ProjectName>MHook64</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -37,70 +39,66 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|Win32'" Label="PropertySheets">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_Win7|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|x64'" Label="PropertySheets">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release_Win7|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>$(ProjectName)</TargetName>
+  <PropertyGroup>
+    <SolutionDir Condition="'$(SolutionDir)' == '' OR '$(SolutionDir)' == '*Undefined*'">$(ProjectDir)</SolutionDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|Win32'">
     <TargetName>$(ProjectName)_Win7</TargetName>
@@ -117,7 +115,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -125,10 +123,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -145,7 +144,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -162,21 +161,18 @@
       <MinimumRebuild>false</MinimumRebuild>
       <FloatingPointModel>Fast</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <GuardCheck>GuardFastFail</GuardCheck>
       <AdditionalOptions>/Gy %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AllowIsolation>true</AllowIsolation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <CETCompat>true</CETCompat>
     </Link>
-    <ClCompile>
-      <GuardCheck>GuardFastFail</GuardCheck>
-    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Win7|Win32'">
     <ClCompile>
@@ -195,7 +191,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AllowIsolation>true</AllowIsolation>
     </Link>
   </ItemDefinitionGroup>
@@ -216,17 +212,26 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AllowIsolation>true</AllowIsolation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ResourceCompile Include="resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Bitmap.h" />
-    
     <ClInclude Include="CursorDot.h" />
+    <ClInclude Include="EmbeddedExe.h" />
+    <ClInclude Include="GDIHelpers.h" />
+    <ClInclude Include="Gamepad.h" />
+    <ClInclude Include="HookHandler.h" />
+    <ClInclude Include="Localization.h" />
+    <ClInclude Include="MHKeypad.h" />
+    <ClInclude Include="MHRepErr.h" />
+    <ClInclude Include="MVector.h" />
+    <ClInclude Include="MagicWindow.h" />
+    <ClInclude Include="RecentFiles.h" />
+    <ClInclude Include="Scancode.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="WM_USER_messages.h" />
     <ClInclude Include="hh1.h" />
     <ClInclude Include="hh1a.h" />
     <ClInclude Include="hh2.h" />
@@ -235,23 +240,25 @@
     <ClInclude Include="hh5.h" />
     <ClInclude Include="hh6.h" />
     <ClInclude Include="hh7.h" />
-    <ClInclude Include="HookHandler.h" />
-    <ClInclude Include="MagicWindow.h" />
-    <ClInclude Include="MHKeypad.h" />
-    <ClInclude Include="MHRepErr.h" />
-    <ClInclude Include="MVector.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="Settings.h" />
-    <ClInclude Include="WM_USER_messages.h" />
-    <ClInclude Include="RecentFiles.h" />
     <ClInclude Include="miniz.h" />
-    <ClInclude Include="Localization.h" />
-    <ClInclude Include="EmbeddedExe.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bitmap.cpp" />
-    
     <ClCompile Include="CursorDot.cpp" />
+    <ClCompile Include="EmbeddedExe.cpp" />
+    <ClCompile Include="HookHandler.cpp" />
+    <ClCompile Include="HookProc.cpp" />
+    <ClCompile Include="Localization.cpp" />
+    <ClCompile Include="MH001.cpp" />
+    <ClCompile Include="MH002.cpp" />
+    <ClCompile Include="MHKeypad.cpp" />
+    <ClCompile Include="MHRepErr.cpp" />
+    <ClCompile Include="MVector.cpp" />
+    <ClCompile Include="MagicWindow.cpp" />
+    <ClCompile Include="RecentFiles.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="Settings2.cpp" />
     <ClCompile Include="hh1.cpp" />
     <ClCompile Include="hh1a.cpp" />
     <ClCompile Include="hh2.cpp" />
@@ -259,29 +266,20 @@
     <ClCompile Include="hh4.cpp" />
     <ClCompile Include="hh5.cpp" />
     <ClCompile Include="hh6.cpp" />
-    <ClCompile Include="HookHandler.cpp" />
-    <ClCompile Include="HookProc.cpp" />
-    <ClCompile Include="MagicWindow.cpp" />
-    <ClCompile Include="MH001.cpp" />
-    <ClCompile Include="MH002.cpp" />
-    <ClCompile Include="MHKeypad.cpp" />
-    <ClCompile Include="MHRepErr.cpp" />
-    <ClCompile Include="MVector.cpp" />
-    <ClCompile Include="Settings.cpp" />
-    <ClCompile Include="Settings2.cpp" />
-    <ClCompile Include="RecentFiles.cpp" />
-    <ClCompile Include="Localization.cpp" />
-    <ClCompile Include="EmbeddedExe.cpp" />
     <ClCompile Include="miniz.c">
-      <PreprocessorDefinitions>MINIZ_NO_ARCHIVE_APIS;MINIZ_NO_STDIO%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MINIZ_NO_ARCHIVE_APIS;MINIZ_NO_STDIO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Авто клик.ahk" />
     <None Include="Колёсико.ahk" />
     <None Include="app.manifest" />
-    <None Include="EmbeddedSettings.bin" />
     <None Include="EmbeddedBitmaps.bin" />
+    <None Include="EmbeddedSettings.bin" />
+    <None Include="Gamepad.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

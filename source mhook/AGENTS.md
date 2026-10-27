@@ -15,29 +15,33 @@
 
 ---
 
-# Проект MHook2
+# Проект MHook64
 
-MHook2 — Windows-приложение для эмуляции нажатий клавиш клавиатуры через мышь и eye-trackers (Tobii REX, TheEyeTribe).
+MHook64 — Windows-приложение для эмуляции нажатий клавиш клавиатуры через мышь (низкоуровневый хук `WH_MOUSE_LL`), плюс волшебные окна и интеграция с AutoHotkey. Поддержка айтрекеров (Tobii REX, TheEyeTribe) удалена из проекта; код геймпада (`Gamepad.cpp`) существует, но не входит в сборку.
 
 ## Обзор проекта
 
 - **Платформа**: Windows (Win32 API)
 - **Язык**: C++
 - **Архитектура**: Паттерн "Стратегия" с центральным абстрактным классом
-- **IDE**: Visual Studio
+- **IDE**: Visual Studio 2026 18.11.2 (тулсет `v145`, Windows SDK 10.0.28000.0)
 
 ## Структура проекта
 
+Все исходники лежат в корне этой директории (`source mhook/`) — структура плоская, подпапки с кодом нет:
+
 ```
-├── MHook2/                 # Основной исходный код
-│   ├── *.h                 # Заголовочные файлы
-│   ├── *.cpp               # Исходные файлы
-│   ├── *.hpp               # C++ заголовки
-│   ├── resource.h          # Определения ресурсов
-│   └── resource.rc         # Файл ресурса (UTF-16 LE)
-├── MHook2.sln             # Решение Visual Studio
-├── MHook2.vcxproj         # Проект Visual Studio
-└── README.txt             # Документация проекта
+├── MHook64.sln              # Решение Visual Studio 2026 (формат 12.00, Version 18)
+├── MHook64.vcxproj          # Проект: 6 конфигураций (Debug/Release/Release_Win7 × Win32/x64)
+├── *.h / *.cpp              # Исходный код (MH001, MH002, HookProc, hh1..hh6, Settings, MagicWindow и т.д.)
+├── hh7.h                    # Режим 7 — только заголовок, без .cpp
+├── miniz.h / miniz.c        # Vendored-библиотека сжатия
+├── resource.h / resource.rc # Ресурсы (UTF-8 + #pragma code_page(65001))
+├── build.bat                # Сборка Release и Release_Win7 (x64)
+├── fix_encoding.py          # UTF-8 BOM + CRLF для .cpp/.h
+├── x64/, Win32/             # Результаты сборки (OutDir/IntDir, игнорируются git)
+├── artifacts/               # Ручные копии .exe (игнорируется git)
+└── README.md                # Документация проекта
 ```
 
 ## Стандарты кода
@@ -162,29 +166,32 @@ python fix_encoding.py
 - Тестируйте все режимы после изменений в базовом классе `HookHandler`
 - При изменении файлов ресурсов убедитесь, что идентификаторы уникальны
 - Магические окна: Всегда проверяйте флаг `active` перед обработкой
-- Eye-trackers: Обрабатывайте ошибки соединения корректно
+- `Gamepad.cpp` не компилируется: не добавляйте вызовы `MHGamepad::`, пока файл не включён в проект
 - Настройки: Предоставляйте разумные значения по умолчанию для новых опций
 
 ## Внешние зависимости
 
-- Windows SDK (Win32 API)
-- tobii_stream_engine.dll (для eye-tracker Tobii)
-- TCP-соединение на порт 6555 (для TheEyeTribe)
+- Windows SDK 10.0.28000.0 (Win32 API), `winmm.lib`
+- `miniz.c` — vendored в дереве исходников, внешних пакетов не требуется
+- AutoHotkey-скрипты (`Авто клик.ahk`, `Колёсико.ahk`) встроены как ресурсы exe
+- `tobii_stream_engine.dll` и TCP-порт 6555 больше не используются (айтрекеры удалены)
 
 ## Требования к сборке
 
-- Visual Studio 2019 или более поздней версии
-- Windows SDK 10.0 или более поздней версии
-- Character Set: Use Multi-Byte (не Unicode) для совместимости с Win32
+- Visual Studio 2026 18.11.2 (тулсет `v145`, MSBuild `Current\Bin`)
+- Windows SDK 10.0.28000.0 — закреплён в `WindowsTargetPlatformVersion` блока Globals
+- Character Set: **Unicode** (`CharacterSet=Unicode`, `TCHAR` = `wchar_t`)
+- CRT статический: `/MT` (Release, Release_Win7) и `/MTd` (Debug) — VC++ redist не нужен
+- `Release|x64` включает `/GL` + LTCG, Control Flow Guard и CETCompat; `Release_Win7`
+  добавляет `_WIN32_WINNT=0x0601`, `WINVER=0x0601`, `_CRT_SECURE_NO_WARNINGS`
+- Результат: `x64\<Конфигурация>\`, `Win32\<Конфигурация>\` (заданы `OutDir`/`IntDir`)
 
-## Путь компиляции MinGW
-
-Сборка через MinGW теперь производится в `C:\Programs\mingw64`.
-
-- Компилятор: `C:\Programs\mingw64\bin\` (gcc/g++)
-- Заголовочные файлы: `C:\Programs\mingw64\x86_64-w64-mingw32\include\`
-- Исходный код для сборки копируется в отдельные build-директории (например, `C:\mhook_build`, `C:\mishkinamish_build`), чтобы не засорять исходное дерево объектными файлами и промежуточными артефактами (.o, .obj).
-- Скрипты сборки MinGW: `build_mingw.bat`, `build_mingw.ps1`
+Сборка всех ходов: `build.bat` (Release + Release_Win7, x64). Отдельная конфигурация:
+```bash
+"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" \
+  MHook64.sln -p:Configuration=Release -p:Platform=x64 -t:Rebuild
+```
+Решение использует платформы `x86`/`x64` и отображает `x86` на `Win32` проекта — так пишет VS 18.
 
 ## Чек-лист проверки после правки
 
@@ -220,8 +227,8 @@ python fix_encoding.py
 **Общий паттерн для массивов**:
 ```cpp
 // В Settings.h
-#define MH_NUM_SCANCODES 105        // Обновите это!
-#define MH_NUM_SCANCODES_EXTRA 110  // Обновите это!
+#define MH_NUM_SCANCODES 108         // Обновите это!
+#define MH_NUM_SCANCODES_EXTRA 113   // Обновите это!
 
 // В Settings.cpp
 MHWORDChar dlg_scancodes[MH_NUM_SCANCODES_EXTRA] = { ... };
@@ -238,9 +245,9 @@ grep -n "ARRAY_SIZE\|array_name" *.cpp *.h
 
 **После завершения изменений ВСЕГДА проверяйте сборку:**
 
-1. **Откройте в Visual Studio**: Загрузите MHook2.sln
+1. **Откройте в Visual Studio**: Загрузите MHook64.sln
 2. **Очистите решение**: Build → Clean Solution
-3. **Пересоберите**: Build → Rebuild Solution
+3. **Пересоберите**: Build → Rebuild Solution (или `build.bat` из командной строки)
 4. **Проверьте на наличие ОШИБОК** (игнорируйте предупреждения):
    - View → Error List
    - Фильтр по "Только ошибки" (игнорируйте предупреждения)
@@ -266,7 +273,7 @@ grep -n "ARRAY_SIZE\|array_name" *.cpp *.h
 ## Примечания
 
 - Проект extensively использует Win32 API - избегайте современных возможностей C++, которые могут конфликтовать
-- Файл ресурса (.rc) в кодировке UTF-16 LE - обращайтесь с осторожностью при редактировании
+- Файл ресурса (.rc) — UTF-8 **без BOM** с `#pragma code_page(65001)` в начале; не перекодировать его в UTF-16
 - Статические переменные extensively используются для глобального состояния
 - Логика на основе таймеров критически важна для правильного тайминга нажатий клавиш
 - **Всегда повторно запускайте fix_encoding.py после любых пакетных операций**

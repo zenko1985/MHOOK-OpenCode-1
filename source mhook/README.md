@@ -1,17 +1,17 @@
 # MHook — из мыши в клавиатуру
 
 **Версия:** 2 (28.07)  
-**Платформа:** Windows (Win32 API, x64)  
+**Платформа:** Windows (Win32 API, x64 и Win32)  
 **Язык:** C++ / MSVC  
-**Среда:** Visual Studio 2022 (MHook64.sln)  
+**Среда:** Visual Studio 2026 18.11.2 (`MHook64.sln`, тулсет v145, SDK 10.0.28000.0)  
 
 ---
 
 ## 1. Назначение
 
-MHook — Windows-приложение, которое перехватывает движения мыши (через низкоуровневый `WH_MOUSE_LL` хук) и эмулирует нажатия клавиш клавиатуры. Поддерживаются также айтрекеры (Tobii 4C/EyeX/REX, TheEyeTribe) и геймпад (XInput).
+MHook — Windows-приложение, которое перехватывает движения мыши (через низкоуровневый `WH_MOUSE_LL` хук) и эмулирует нажатия клавиш клавиатуры. Дополнительно поддерживаются волшебные окна и интеграция со скриптами AutoHotkey; поддержка айтрекеров (Tobii, TheEyeTribe) удалена из сборки.
 
-Основное применение — игры, где управление стрелками/WASD неудобно, либо требуется эмуляция клавиш взглядом.
+Основное применение — игры, где управление стрелками/WASD неудобно.
 
 ---
 
@@ -19,13 +19,11 @@ MHook — Windows-приложение, которое перехватывае�
 
 ```
 source mhook/
-├── .vs/                          # Настройки Visual Studio
-├── x64/Debug|Release/            # Результаты сборки
-├── MHook64.sln                   # Решение Visual Studio 2022
-├── MHook64.vcxproj               # Файл проекта
-├── MHook64.vcxproj.user          # Пользовательские настройки проекта
-├── app.manifest                  # Манифест (DPI, Windows 7-11)
-├── build.bat                     # Скрипт сборки + UPX упаковка
+├── MHook64.sln                   # Решение Visual Studio 2026 18.11.2
+├── MHook64.vcxproj               # Файл проекта (тулсет v145, SDK 10.0.28000.0)
+├── MHook64.vcxproj.user          # Пользовательские настройки проекта (не отслеживается git)
+├── app.manifest                  # Манифест (DPI, Windows 7-11), подключён в resource.rc
+├── build.bat                     # Сборка Release и Release_Win7 (x64) через MSBuild
 │
 ├── MH001.cpp                     # WinMain, инициализация, цикл сообщений
 ├── MH002.cpp                     # WndProc (оконная процедура главного окна)
@@ -43,37 +41,40 @@ source mhook/
 ├── hh7.h                         # Режим 7 (пустышка, только окна)
 │
 ├── Settings.h / .cpp             # Настройки, диалог, сохранение/загрузка
-├── Settings2.cpp                 # Диалог настроек волшебных окон + айтрекеров
+├── Settings2.cpp                 # Диалог настроек волшебных окон
 ├── RecentFiles.h / .cpp          # Список недавних .MHOOK файлов (в т.ч. встроенных)
+├── Localization.h / .cpp         # Смена языка интерфейса (RU/EN)
 │
 ├── MHKeypad.h / .cpp             # Эмуляция нажатий клавиш (SendInput)
 ├── MVector.h / .cpp              # Анализ вектора движения мыши
-├── MagicWindow.h / .cpp          # Волшебные окна (24 шт.)
+├── MagicWindow.h / .cpp          # Волшебные окна (18 шт.)
 ├── Bitmap.h / .cpp               # Графика: битмапы 4/8 направлений
-├── CircleWindow.h / .cpp         # Окно-кружок для айтрекера (точка взгляда)
 ├── CursorDot.h / .cpp            # Красная точка-курсор поверх мыши
-│
-├── TobiiREX.h / .cpp             # Поддержка Tobii 4C/EyeX/REX
-├── TET.h / .cpp                  # Поддержка TheEyeTribe
-├── OnGazeData.cpp                # Обработка данных айтрекера (общая)
-│
-├── Gamepad.h / .cpp              # Поддержка геймпада (XInput)
+├── EmbeddedExe.h / .cpp          # Встроенные AHK/exe-компоненты
 ├── MHRepErr.h / .cpp             # Сообщения об ошибках
+├── Scancode.h                    # Скан-коды клавиш
+├── GDIHelpers.h                  # Вспомогательные GDI-функции
 ├── WM_USER_messages.h            # Пользовательские WM_USER сообщения
 │
-├── resource.h / resource.rc      # Ресурсы (диалоги)
+├── Gamepad.h / Gamepad.cpp       # Геймпад XInput — НЕ включён в сборку (код не вызывается)
+├── miniz.h / miniz.c             # Vendored: распаковка встроенных ресурсов
+│
+├── resource.h / resource.rc      # Ресурсы (диалоги, манифест, AHK); UTF-8 + #pragma code_page(65001)
 ├── EmbeddedSettings.bin          # Встроенные конфиги (.MHOOK внутри .exe)
 ├── EmbeddedBitmaps.bin           # Встроенные битмапы джойстика (deflate, 53 КБ)
+├── Авто клик.ahk / Колёсико.ahk  # AHK-скрипты (встроены как ресурсы)
 │
-├── generate_embedded.py         # Генерация EmbeddedSettings.bin
-├── generate_embedded_bitmaps.py # Генерация/восстановление EmbeddedBitmaps.bin (--extract)
-├── fix_encoding.py               # Исправление кодировки
+├── generate_embedded.py          # Генерация EmbeddedSettings.bin
+├── generate_embedded_bitmaps.py  # Генерация/восстановление EmbeddedBitmaps.bin (--extract)
+├── fix_encoding.py               # UTF-8 BOM + CRLF для всех .cpp/.h
 ├── create_shortcuts.ps1          # Создание ярлыков
-├── build.bat                     # Сборка Release и Release_Win7 (x64)
-├── build_xp.bat                  # Сборка варианта под Windows XP
+├── artifacts/                    # Ручные копии собранных .exe (не отслеживается git)
 │
 ├── AGENTS.md                     # Подсказки для ИИ-ассистентов
+├── README.md                     # Этот документ
 └── LICENSE                       # Лицензия
+
+Результаты сборки (игнорируются git): x64/<Config>/ и Win32/<Config>/
 ```
 
 ---
@@ -87,11 +88,10 @@ WinMain (MH001.cpp)
   ├── Инициализация DPI Awareness
   ├── Определение размеров экрана
   ├── Создание кистей, шрифтов, пера
-  ├── CircleWindow::Init() — окно-кружок для айтрекера
   ├── Загрузка конфигурации по умолчанию (default.MHOOK)
   ├── Регистрация класса главного окна
   ├── Создание главного окна (MHhwnd)
-  ├── MagicWindow::Init() — создание 24 волшебных окон
+  ├── MagicWindow::Init() — создание 18 волшебных окон
   ├── MHSettings::SettingsDialogue() — диалог настроек
   ├── SetWindowsHookEx(WH_MOUSE_LL, HookProc, ...) — установка хука
   └── Цикл сообщений GetMessage()
@@ -237,7 +237,7 @@ MHookHandler (абстрактный)
 - Drag-and-drop `.MHOOK` на диалог настроек
 - Поддержка `.MHOO` (старый формат) — автоматом переименовывается в `.MHOOK`
 
-### 4.5. MagicWindow (24 окна)
+### 4.5. MagicWindow (18 окон)
 
 Волшебные окна — прозрачные окна поверх всех, которые нажимают клавиши при наведении мыши (или взгляда айтрекера).
 
@@ -266,6 +266,7 @@ MHookHandler (абстрактный)
 - Прозрачность 25% в покое, 75% при наведении
 - Используется недокументированный `SetWindowBand()` (user32.dll) для обхода StartAllBack
 - Каждую секунду принудительно поднимаются поверх всех (таймер 5, 40 тиков)
+- Количество задаётся `NUM_MAGIC_WINDOWS` в `MagicWindow.h` (сейчас 18)
 
 ---
 
@@ -324,39 +325,26 @@ MHookHandler (абстрактный)
 
 ---
 
-## 6. Айтрекеры
+## 6. Айтрекеры (удалены из сборки)
 
-### Tobii 4C / EyeX / REX (TobiiREX.cpp)
-- Загружает `tobii_stream_engine.dll` динамически через `LoadLibrary`
-- Находит первое устройство через `tobii_enumerate_local_device_urls`
-- Подписывается на `tobii_gaze_point_subscribe`
-- Создаёт поток `TobiiStreamThread`, который циклически вызывает `tobii_wait_for_callbacks`
-- Полученные координаты передаёт в `on_gaze_data()`
+Поддержка Tobii 4C/EyeX/REX, TheEyeTribe и окна-кружка взгляда (`TobiiREX.*`, `TET.*`,
+`OnGazeData.cpp`, `CircleWindow.*`) удалена из проекта: файлов нет в дереве исходников
+и в `MHook64.vcxproj`, `tobii_stream_engine.dll` и winsock больше не используются.
+Исходный код этих модулей доступен в истории git (коммит `1d325b1` и старше).
 
-### TheEyeTribe (TET.cpp)
-- TCP-соединение с `127.0.0.1:6555`
-- Отправляет JSON: `set push` для получения данных в реальном времени
-- Два потока: `HeartBeatThread` (раз в секунду) и `ReaderThread` (парсинг JSON)
-- Парсит JSON-фреймы через `sscanf` (два шаблона: `fix:true` / `fix:false`)
-- Координаты передаёт в `on_gaze_data()`
-
-### OnGazeData (общий)
-- Буфер на 5 последних позиций
-- Для активации окна нужно 3 из 5 попаданий (`MH_EYETRACKER_MIN_REPEAT=3`)
-- Взаимодействует с `MagicWindow::Press()` для эмуляции нажатий
-- Двигает `CircleWindow` (кружок взгляда)
+Волшебные окна реагируют только на мышь; поле `mouse_or_eytracker` в структуре окна
+наследует историческое имя и зафиксирован в формате `.MHOOK`, в коде всегда сбрасывается в 0.
 
 ---
 
-## 7. Геймпад (XInput)
+## 7. Геймпад (XInput) — не подключён к сборке
 
-**Файлы:** `Gamepad.h/.cpp`
+**Файлы:** `Gamepad.h` / `Gamepad.cpp` (в проекте помечен как `None`, не компилируется)
 
-- Использует `XInputGetState` для опроса до 4 геймпадов
-- Левый стик → движение мыши
-- Кнопки A/B/X/Y и D-Pad → клики мыши и скролл
-- Чувствительность настраивается
-- Включается/выключается флагом `flag_gamepad_enabled`
+- Класс `MHGamepad` использует `XInputGetState` для опроса до 4 геймпадов
+- Левый стик → движение мыши, кнопки A/B/X/Y и D-Pad → клики и скролл
+- Параметры `GamepadEnabled`, `GamepadA`..`GamepadDPadRight` сохраняются в `.MHOOK`
+- Ни один вызов `MHGamepad::` не выполняется из рабочего кода — функциональность неактивна
 
 ---
 
@@ -377,18 +365,14 @@ MHookHandler (абстрактный)
   `python generate_embedded_bitmaps.py --extract`. Цикл правки картинки:
   `--extract` → отредактировать `.bmp` → пересобрать контейнер → удалить `.bmp`.
 
-### CircleWindow (CircleWindow.h/.cpp)
-- Прозрачное окно 100×100 с зелёным кружком
-- Отображает точку взгляда айтрекера
-- Двигается через `WM_USER_MOVEWINDOW`
-
 ### CursorDot (CursorDot.h/.cpp)
 - Красная точка (6x6 пикселей) под курсором мыши
 - Полупрозрачная (200/255), клики проходят сквозь (`HTTRANSPARENT`)
 - Апдейт позиции в таймере 5 и в HookProc при каждом WM_MOUSEMOVE
 
 ### MHRepErr (MHRepErr.h/.cpp)
-- Три перегрузки: системная ошибка, текстовая, ошибка Tobii SDK
+- Две перегрузки `MHReportError`: системная ошибка (по `GetLastError`) и текстовая
+- Макрос `__WIDEFILE__` передаёт имя файла и строку вызова в сообщение
 - Показывает MessageBox с деталями
 
 ### RecentFiles (RecentFiles.h/.cpp)
@@ -416,7 +400,7 @@ MHookHandler (абстрактный)
 
 Формат файла — текстовый, каждая строка: `ИмяПараметра значение [проверочное_значение]`.
 
-Поддерживается 47 параметров (см. `save_struct` в Settings.cpp):
+Поддерживается 64 параметра (см. `save_struct` в Settings.cpp):
 - `Sensitivity` — чувствительность
 - `Button0`..`Button16` — скан-коды клавиш (3 раскладки × 5-6 кнопок + доп. клавиши)
 - `DeadzoneX`, `DeadzoneY` — мёртвые зоны
@@ -426,7 +410,7 @@ MHookHandler (абстрактный)
 - `Mode` — режим 1-7
 - `TimeoutMove` — таймаут после движения
 - `FastPush`..`CursorVisible` — флаги
-- `MagicWindows` — 24 волшебных окна
+- `MagicWindows` — 18 волшебных окон
 
 Автозагрузка: при запуске ищется `default.MHOOK` в директории программы (MH001.cpp:82).
 
@@ -451,20 +435,27 @@ MHookHandler (абстрактный)
 ## 12. Сборка
 
 **Требования:**
-- Visual Studio 2022 (MSBuild v18)
-- Windows SDK 10+
-- UPX (опционально, для сжатия)
+- Visual Studio 2026 18.11.2 (тулсет `v145`, MSBuild `Current`)
+- Windows SDK 10.0.28000.0 (закреплён в `MHook64.vcxproj`, `WindowsTargetPlatformVersion`)
+- Character Set: Unicode; CRT статический (`/MT`, `/MTd`) — VC++_redist не требуется
 
 **Команда:**
 ```cmd
 build.bat
 ```
 
-Или вручную:
+Или вручную (все конфигурации):
 ```cmd
 MSBuild.exe MHook64.sln /p:Configuration=Release /p:Platform=x64
-upx -9 x64\Release\MHook64.exe
+MSBuild.exe MHook64.sln /p:Configuration=Release_Win7 /p:Platform=x64
+MSBuild.exe MHook64.sln /p:Configuration=Debug /p:Platform=x64
 ```
+
+**Результат:** `x64\<Конфигурация>\` и `Win32\<Конфигурация>\` (`OutDir`/`IntDir`
+заданы в проекте, в git не попадают). Вариант `Release_Win7` определяет
+`_WIN32_WINNT=0x0601` и собирает `MHook64_Win7.exe`.
+
+**UPX** намеренно отключён в `build.bat` — упаковка ломает метаданные CFG/CET.
 
 **Манифест (app.manifest):**
 - DPI: `PerMonitorV2` (через `SetProcessDpiAwareness` + манифест)
@@ -499,13 +490,8 @@ MagicWindow
   +-- Использует: MHRepErr, SendInput, MHSettings
   +-- Взаимодействует: Settings2 диалог
 
-Eye-trackers
-  +-- BKBTobiiREX --> tobii_stream_engine.dll (LoadLibrary)
-  +-- BKBTET --> winsock (127.0.0.1:6555)
-  +-- Оба вызывают: on_gaze_data() --> MagicWindow, CircleWindow
-
-Gamepad
-  +-- Использует: XInput.lib, MHSettings
+Gamepad (не компилируется)
+  +-- Использует: XInput через LoadLibrary, MHSettings
   +-- Эмулирует: SendInput (мышь)
 ```
 
@@ -515,10 +501,7 @@ Gamepad
 
 | Константа | Значение | Описание |
 |-----------|----------|----------|
-| `MH_NUM_SCANCODES` | 105 | Базовые скан-коды (103 клавиши + ЛКМ + ПКМ) |
-| `MH_NUM_SCANCODES_EXTRA` | 110 | С расширенными операциями для окон |
-| `NUM_MAGIC_WINDOWS` | 24 | Количество волшебных окон |
-| `MH_EYETRACKER_BUFFER_SIZE` | 5 | Размер буфера айтрекера |
-| `MH_EYETRACKER_MIN_REPEAT` | 3 | Минимум повторений для активации окна |
+| `MH_NUM_SCANCODES` | 108 | Базовые скан-коды (клавиши + ЛКМ + ПКМ) |
+| `MH_NUM_SCANCODES_EXTRA` | 113 | С расширенными операциями для окон |
+| `NUM_MAGIC_WINDOWS` | 18 | Количество волшебных окон |
 | `MH_WINDOW_SIZE` | 200 | Размер главного окна |
-| `MH_NUM_SAVE_LINES` | 47 | Количество сохраняемых параметров |

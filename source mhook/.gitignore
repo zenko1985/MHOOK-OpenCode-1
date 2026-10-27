@@ -1,27 +1,42 @@
+# Результат сборки MSBuild
 x64/
+Win32/
 Debug/
 Release/
+Release_Win7/
+MHook64/
+/artifacts/
+
+# Кэш Visual Studio
 .vs/
 *.user
 *.suo
 *.sdf
-*.log
+*.aps
 *.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
+UpgradeLog.htm
+RCa*
+
+# Промежуточные объекты и отладочные символы
 *.obj
+*.o
+*.ii
+*.s
 *.pdb
 *.ilk
 *.idb
 *.iobj
 *.ipdb
-*.lastbuildstate
-*.unsuccessfulbuild
-*.aps
-RCa*
-UpgradeLog.htm
+*.log
+
+# Временные файлы отладки сборки
+test_*
+build_output.txt
+
+# Устаревшие артефакты генерации встроенных ресурсов
 names.txt
 output.txt
 removed_embedded.txt
 check_matched.py
-
-# Промежуточная сборка MSBuild
-MHook64/
