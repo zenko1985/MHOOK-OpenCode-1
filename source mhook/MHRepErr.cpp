@@ -6,36 +6,42 @@
 #include <stdio.h>
 #include "MHRepErr.h"
 #include "Localization.h"
-typedef __declspec(dllimport) const char* (__cdecl *type_tobiigaze_get_error_message)(int error_code);
-extern type_tobiigaze_get_error_message fp_tobiigaze_get_error_message;
 // Сообщает о СИСТЕМНЫХ ошибках времени исполнения
 void MHReportError(TCHAR *SourceFile, TCHAR *FuncName, int LineNumber, HWND hwnd)
 {
 	DWORD res;				// Результат функции FormatMessage
-	void *BKBStringError;	// Указатель на строку для получения системной ошибки
+	const TCHAR *BKBStringError;	// Указатель на строку для получения системной ошибки
 	TCHAR BKBMessage[1024];	// Это строка, в которой формируется сообщение об ошибке
+	// ВНИМАНИЕ: память для BKBStringError выделяет только FormatMessage с флагом
+	// FORMAT_MESSAGE_ALLOCATE_BUFFER. Во всех остальных случаях здесь стоит
+	// указатель на строковый литерал из секции .rdata, и LocalFree по нему -
+	// это вызов HeapFree по чужому адресу, то есть порча кучи
+	bool needLocalFree = false;
 	DWORD BKBLastError=GetLastError(); // Получили код системной ошибки
 	if (BKBLastError!=(DWORD)0) // Получить строку, если код не равен нулю
 	{
+		// LANG_NEUTRAL с FORMAT_MESSAGE_FROM_SYSTEM не подходит - нужно брать
+		// язык пользователя по умолчанию, иначе текст ошибки не находится
 		res=FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
 						NULL, BKBLastError,
-						MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+						MAKELANGID((WORD)(GetUserDefaultLangID()>>10), SUBLANG_DEFAULT),
 						(LPTSTR) &BKBStringError, 0, NULL );
-		if(res==(DWORD)0) BKBStringError=(void *)L(LOC_ERR_MSG_NOT_FOUND);
+		if(res==(DWORD)0) BKBStringError=L(LOC_ERR_MSG_NOT_FOUND);
+		else needLocalFree = true;
 	}
 	else
 	{
-		BKBStringError=(void *)L(LOC_ERR_NO_SYS_ERROR);
+		BKBStringError=L(LOC_ERR_NO_SYS_ERROR);
 	}
 	// Сформировать строку с полным описанием ошибки
 	swprintf_s(BKBMessage, _countof(BKBMessage),
 			L"Module: %s\r\nFunction: %s\r\nLine number: %d\r\nSysErr: %d (%s)",
 			SourceFile, FuncName, LineNumber,
-			BKBLastError, (TCHAR *)BKBStringError);
+			BKBLastError, BKBStringError);
 	//Освобождаем память, которую выделила функция FormatMessage
-	if (BKBLastError!=(DWORD)0)
+	if (needLocalFree)
 	{
-			LocalFree( BKBStringError );
+		LocalFree( (LPVOID)BKBStringError );
 	}
 	//Печатаем сообщение об ошибке (если возможно, на экран)
 	MessageBox(hwnd,BKBMessage,L(LOC_ERR_CAPTION),MB_OK|MB_ICONINFORMATION );
@@ -46,30 +52,4 @@ void MHReportError(TCHAR *Error, HWND hwnd)
 {
 	//Печатаем сообщение об ошибке (если возможно, на экран)
 	MessageBox(hwnd,Error,L(LOC_ERR_DISORDER),MB_OK|MB_ICONINFORMATION );
-}
-//============================================================================================
-// Для ошибок Tobii Gaze SDK (перегружена)
-//============================================================================================
-void MHReportError(int tbg_error_code, TCHAR *SourceFile, TCHAR *FuncName, int LineNumber, HWND hwnd)
-{
-	TCHAR ARCMessage[1024];	// Это строка, в которой формируется сообщение об ошибке
-	TCHAR ConvertASCII2W[1024];
-	if (tbg_error_code)
-    {
-		const TCHAR *tmp_char;
-		if(fp_tobiigaze_get_error_message)
-		{
-			MultiByteToWideChar(CP_ACP, 0, (*fp_tobiigaze_get_error_message)(tbg_error_code), -1, ConvertASCII2W, 1023);
-			tmp_char=ConvertASCII2W;
-		}
-		else tmp_char=L(LOC_ERR_UNKNOWN);
-		// Сформировать строку с полным описанием ошибки
-		swprintf_s(ARCMessage, _countof(ARCMessage),
-			L"Module: %s\nFunction: %s\nLine number: %d\nTobii SDK error: %d (%s)",
-			SourceFile, FuncName, LineNumber,
-			tbg_error_code,
-			tmp_char);
-		//Печатаем сообщение об ошибке (на экран)
-		MessageBox(hwnd,ARCMessage,L(LOC_ERR_TOBII_CAPTION),MB_OK|MB_ICONINFORMATION );
-	}
 }

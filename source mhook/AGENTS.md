@@ -1,263 +1,272 @@
-# Agent Communication Rules
+# Правила взаимодействия с агентом
 
-## Language Requirements
+## Требования к языку
 
-**ALWAYS respond to the user in Russian language.** All communication, explanations, questions, and code comments must be in Russian.
+**ВСЕГДА отвечайте пользователю на русском языке.** Все коммуникации, объяснения, вопросы и комментарии к коду должны быть на русском языке.
 
-## Task Clarification Rules
+## Правила уточнения задачи
 
-**ALWAYS ask clarifying questions** if the task is unclear, ambiguous, or missing important details. Do not proceed with implementation until you fully understand the requirements. Ask about:
-- Specific expected behavior
-- Edge cases and error handling
-- UI/UX preferences
-- File locations or naming conventions
-- Any constraints or limitations
+**ВСЕГДА задавайте уточняющие вопросы**, если задача неясна, двусмысленна или не содержит важных деталей. Не приступайте к реализации, пока полностью не поймёте требования. Спрашивайте о:
+- Конкретном ожидаемом поведении
+- Крайних случаях и обработке ошибок
+- Предпочтениях UI/UX
+- Расположении файлов или соглашениях об именовании
+- Любых ограничениях или ограничениях
 
 ---
 
-# MHook2 Project
+# Проект MHook2
 
-MHook2 - Windows-приложение для эмуляции клавиатурных нажатий через мышь и eye-trackers (Tobii REX, TheEyeTribe).
+MHook2 — Windows-приложение для эмуляции нажатий клавиш клавиатуры через мышь и eye-trackers (Tobii REX, TheEyeTribe).
 
-## Project Overview
+## Обзор проекта
 
-- **Platform**: Windows (Win32 API)
-- **Language**: C++
-- **Architecture**: Pattern "Strategy" with central abstract class
+- **Платформа**: Windows (Win32 API)
+- **Язык**: C++
+- **Архитектура**: Паттерн "Стратегия" с центральным абстрактным классом
 - **IDE**: Visual Studio
 
-## Project Structure
+## Структура проекта
 
 ```
-├── MHook2/                 # Main source code
-│   ├── *.h                 # Header files
-│   ├── *.cpp               # Source files
-│   ├── *.hpp               # C++ headers
-│   ├── resource.h          # Resource definitions
-│   └── resource.rc         # Resource file (UTF-16 LE)
-├── MHook2.sln             # Visual Studio solution
-├── MHook2.vcxproj         # Visual Studio project
-└── README.txt             # Project documentation
+├── MHook2/                 # Основной исходный код
+│   ├── *.h                 # Заголовочные файлы
+│   ├── *.cpp               # Исходные файлы
+│   ├── *.hpp               # C++ заголовки
+│   ├── resource.h          # Определения ресурсов
+│   └── resource.rc         # Файл ресурса (UTF-16 LE)
+├── MHook2.sln             # Решение Visual Studio
+├── MHook2.vcxproj         # Проект Visual Studio
+└── README.txt             # Документация проекта
 ```
 
-## Code Standards
+## Стандарты кода
 
-### File Encoding (CRITICAL)
+### Кодировка файлов (КРИТИЧНО)
 
-**All source files (.cpp, .h, .hpp) must be saved with UTF-8 with BOM encoding (Codepage 65001).**
+**Все исходные файлы (.cpp, .h, .hpp) должны быть сохранены с кодировкой UTF-8 с BOM (страница кода 65001).**
 
-This is mandatory for proper handling of Russian characters and comments in the source code. The project uses Russian language extensively in UI strings and comments.
+Это обязательно для корректной обработки русских символов и комментариев в исходном коде. Проект extensively использует русский язык в строках интерфейса и комментариях.
 
-**DO NOT** save files as:
-- UTF-8 without BOM
+**НЕ сохраняйте файлы как:**
+- UTF-8 без BOM
 - ANSI/Windows-1251
 - UTF-16
 
-**Always use**: UTF-8 with BOM (65001)
+**Всегда используйте**: UTF-8 с BOM (65001)
 
-### Line Endings (REQUIRED)
+### Конец строки (ОБЯЗАТЕЛЬНО)
 
-**All source files MUST use CRLF line endings (\r\n) for Windows/Visual Studio compatibility.**
+**Все исходные файлы ДОЛЖНЫ использовать окончания строк CRLF (\r\n) для совместимости с Windows/Visual Studio.**
 
-Mixed line endings (LF and CRLF in same file) will cause compilation issues and must be avoided.
+Смешанные окончания строк (LF и CRLF в одном файле) вызовут проблемы компиляции и должны быть избежаны.
 
-**Always use**: CRLF (\r\n)
+**Всегда используйте**: CRLF (\r\n)
 
-**Encoding, Syntax and Line Endings Fix Script**:
-After ANY edit to .cpp or .h files, ALWAYS run:
+**Скрипт исправления кодировки, синтаксиса и окончаний строк**:
+После ЛЮБОГО редактирования .cpp или .h файлов ВСЕГДА запускайте:
 ```bash
 python fix_encoding.py
 ```
 
-This script (`fix_encoding.py` in project root) automatically:
-- Detects current encoding of each file
-- Converts to UTF-8 with BOM if needed
-- Handles UTF-16, Windows-1251, and other encodings
-- **FIXES SYNTAX ERRORS**: `class Name:public` → `class Name : public`
-- **NORMALIZES LINE ENDINGS**: Converts all LF (\n) to CRLF (\r\n)
-- Shows progress for each file processed
-- Skips temporary directories (temp, x64, Debug, Release)
+Этот скрипт (`fix_encoding.py` в корне проекта) автоматически:
+- Определяет текущую кодировку каждого файла
+- Конвертирует в UTF-8 с BOM при необходимости
+- Обрабатывает UTF-16, Windows-1251 и другие кодировки
+- **ИСПРАВЛЯЕТ ОШИБКИ СИНТАКСИСА**: `class Name:public` → `class Name : public`
+- **НОРМАЛИЗУЕТ КОНЕЦ СТРОКИ**: Конвертирует все LF (\n) в CRLF (\r\n)
+- Показывает прогресс для каждого обработанного файла
+- Пропускает временные директории (temp, x64, Debug, Release)
 
-### Naming Conventions
+### Соглашения об именовании
 
-- **Classes**: PascalCase (e.g., `MHookHandler`, `MHSettings`)
-- **Static Classes**: Prefix with `MH` (e.g., `MHKeypad`, `MHVector`)
-- **Methods**: PascalCase (e.g., `OnMouseMove`, `OnLDown`)
-- **Variables**: 
-  - Member variables: Use descriptive names (e.g., `rbutton_pressed`, `position_mem`)
-  - Static variables: snake_case (e.g., `flag_autoclick_lmb`)
-  - Global variables: prefix with `flag_` for booleans (e.g., `flag_left_button_waits`)
-- **Constants**: UPPER_CASE with underscores (e.g., `IDC_CHECK_AUTOCLICK`, `MH_NUM_SCANCODES`)
-- **Resource IDs**: Prefix with `IDC_` for controls, `IDD_` for dialogs, `IDB_` for bitmaps
+- **Классы**: PascalCase (например, `MHookHandler`, `MHSettings`)
+- **Статические классы**: Префикс `MH` (например, `MHKeypad`, `MHVector`)
+- **Методы**: PascalCase (например, `OnMouseMove`, `OnLDown`)
+- **Переменные**:
+  - Члены класса: Используйте описательные имена (например, `rbutton_pressed`, `position_mem`)
+  - Статические переменные: snake_case (например, `flag_autoclick_lmb`)
+  - Глобальные переменные: префикс `flag_` для булевых (например, `flag_left_button_waits`)
+- **Константы**: UPPER_CASE с нижними подчёркиваниями (например, `IDC_CHECK_AUTOCLICK`, `MH_NUM_SCANCODES`)
+- **Идентификаторы ресурсов**: Префикс `IDC_` для элементов управления, `IDD_` для диалогов, `IDB_` для битмапов
 
-### Code Style
+### Стиль кода
 
-- Use tabs for indentation
-- Opening brace on the same line for functions and control structures
-- Always use braces even for single-line blocks
-- Comment in Russian for project-specific logic
-- Use `//` for single-line comments, `/* */` for multi-line
+- Используйте табуляцию для отступов
+- Открывающая скобка на той же строке для функций и конструкций управления
+- Всегда используйте скобки даже для однострочных блоков
+- Комментируйте на русском языке для логики проекта
+- Используйте `//` для однострочных комментариев, `/* */` для многострочных
 
-### Include Order
+### Порядок include
 
-1. Windows headers (`<Windows.h>`)
-2. Standard library headers
-3. Project headers (in quotes)
-4. Resource header (`resource.h`)
+1. Заголовки Windows (`<Windows.h>`)
+2. Стандартные заголовочные файлы библиотеки
+3. Заголовки проекта (в кавычках)
+4. Заголовок ресурса (`resource.h`)
 
-Example:
+Пример:
 ```cpp
 #include <Windows.h>
 #include "HookHandler.h"
 #include "Settings.h"
 ```
 
-### Class Structure
+### Структура класса
 
-For handler classes inheriting from `MHookHandler`:
-- Implement virtual methods from base class
-- Add mode-specific fields at the end
-- Use `// Название режима` comment before class definition
+Для классов обработчиков, наследующихся от `MHookHandler`:
+- Реализуйте виртуальные методы базового класса
+- Добавьте поля, специфичные для режима, в конце
+- Используйте комментарий `// Название режима` перед определением класса
 
-### Resource Management
+### Управление ресурсами
 
-- Dialog controls: Use `BS_AUTOCHECKBOX | WS_TABSTOP` for checkboxes
-- ComboBoxes: Use `CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP`
-- Control IDs: Must be unique, defined in `resource.h`
-- Dialog layouts: Keep consistent spacing (10-15 pixels between controls)
+- Элементы управления диалога: Используйте `BS_AUTOCHECKBOX | WS_TABSTOP` для флажков
+- ComboBoxes: Используйте `CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP`
+- Идентификаторы элементов управления: Должны быть уникальны, определены в `resource.h`
+- Макет диалогов: Соблюдайте равномерные интервалы (10-15 пикселей между элементами управления)
 
-### Settings Pattern
+### Паттерн настроек
 
-When adding new settings:
-1. Add static variable in `Settings.h`
-2. Initialize in `Settings.cpp`
-3. Add control in `FillDialogue()`
-4. Add load logic in `AfterLoad()`
-5. Add save logic in `SettingsDialogue()` (WM_COMMAND section)
+При добавлении новых настроек:
+1. Добавьте статическую переменную в `Settings.h`
+2. Инициализируйте в `Settings.cpp`
+3. Добавьте элемент управления в `FillDialogue()`
+4. Добавьте логику загрузки в `AfterLoad()`
+5. Добавьте логику сохранения в `SettingsDialogue()` (раздел WM_COMMAND)
 
-### Hook Handler Pattern
+### Паттерн обработчика хука
 
-When implementing new modes:
-1. Inherit from `MHookHandler`
-2. Override virtual methods as needed
-3. Implement `OnLDown()` and `OnLUp()` for click handling
-4. Use timers (ID 1-6) for delayed actions
+При реализации новых режимов:
+1. Наследуйтесь от `MHookHandler`
+2. Переопределяйте виртуальные методы по мере необходимости
+3. Реализуйте `OnLDown()` и `OnLUp()` для обработки кликов
+4. Используйте таймеры (ID 1-6) для отложенных действий
 
-## Critical Rules
+## Критические правила
 
-1. **Encoding**: ALL .cpp and .h files MUST be UTF-8 with BOM
-2. **Russian Text**: All UI strings that appear to user must be in Russian
-3. **Timer IDs**: 
-   - 1: Key press timeout
-   - 2: Screen corner timer
-   - 3: Left button release
-   - 4: Right button release  
-   - 5: Magic windows timer
-   - 6: Autoclicker timer
-4. **Key Simulation**: Use `MHKeypad::Press4()` and `MHKeypad::Press8()` for key presses
-5. **Error Handling**: Use `MHRepErr` for error reporting
+1. **Кодировка**: ВСЕ файлы .cpp и .h ДОЛЖНЫ быть UTF-8 с BOM
+2. **Русский текст**: Все строки интерфейса, которые видны пользователю, должны быть на русском языке
+3. **Идентификаторы таймеров**:
+   - 1: Таймаут нажатия клавиши
+   - 2: Таймер угла экрана
+   - 3: Отпускание левой кнопки
+   - 4: Отпускание правой кнопки
+   - 5: Таймер магических окон
+   - 6: Таймер автокликера
+4. **Симуляция клавиш**: Используйте `MHKeypad::Press4()` и `MHKeypad::Press8()` для нажатий клавиш
+5. **Обработка ошибок**: Используйте `MHRepErr` для сообщения об ошибках
 
-## Development Guidelines
+## Рекомендации по разработке
 
-- Test all modes after changes to `HookHandler` base class
-- When modifying resource files, ensure IDs are unique
-- Magic windows: Always check `active` flag before processing
-- Eye-trackers: Handle connection failures gracefully
-- Settings: Provide sensible defaults for new options
+- Тестируйте все режимы после изменений в базовом классе `HookHandler`
+- При изменении файлов ресурсов убедитесь, что идентификаторы уникальны
+- Магические окна: Всегда проверяйте флаг `active` перед обработкой
+- Eye-trackers: Обрабатывайте ошибки соединения корректно
+- Настройки: Предоставляйте разумные значения по умолчанию для новых опций
 
-## External Dependencies
+## Внешние зависимости
 
 - Windows SDK (Win32 API)
-- tobii_stream_engine.dll (for Tobii eye-trackers)
-- TCP connection on port 6555 (for TheEyeTribe)
+- tobii_stream_engine.dll (для eye-tracker Tobii)
+- TCP-соединение на порт 6555 (для TheEyeTribe)
 
-## Build Requirements
+## Требования к сборке
 
-- Visual Studio 2019 or later
-- Windows SDK 10.0 or later
-- Character Set: Use Multi-Byte (not Unicode) for Win32 compatibility
+- Visual Studio 2019 или более поздней версии
+- Windows SDK 10.0 или более поздней версии
+- Character Set: Use Multi-Byte (не Unicode) для совместимости с Win32
 
-## Post-Edit Verification Checklist
+## Путь компиляции MinGW
 
-### 1. Encoding Verification (MANDATORY)
+Сборка через MinGW теперь производится в `C:\Programs\mingw64`.
 
-**ALWAYS run the encoding fix script after editing any .cpp or .h files:**
+- Компилятор: `C:\Programs\mingw64\bin\` (gcc/g++)
+- Заголовочные файлы: `C:\Programs\mingw64\x86_64-w64-mingw32\include\`
+- Исходный код для сборки копируется в отдельные build-директории (например, `C:\mhook_build`, `C:\mishkinamish_build`), чтобы не засорять исходное дерево объектными файлами и промежуточными артефактами (.o, .obj).
+- Скрипты сборки MinGW: `build_mingw.bat`, `build_mingw.ps1`
+
+## Чек-лист проверки после правки
+
+### 1. Проверка кодировки (ОБЯЗАТЕЛЬНО)
+
+**ВСЕГДА запускайте скрипт исправления кодировки после редактирования любых .cpp или .h файлов:**
 
 ```bash
 python fix_encoding.py
 ```
 
-This script automatically converts all source files to UTF-8 with BOM encoding.
+Этот скрипт автоматически конвертирует все исходные файлы в кодировку UTF-8 с BOM.
 
-**Location**: `fix_encoding.py` in project root
-**Purpose**: Ensures all .cpp, .h, .hpp files have proper UTF-8 with BOM encoding
-**When to run**: 
-- After ANY file edit
-- Before committing changes
-- After any automated tool modifies files
+**Расположение**: `fix_encoding.py` в корне проекта
+**Цель**: Гарантирует, что все файлы .cpp, .h, .hpp имеют правильную кодировку UTF-8 с BOM
+**Когда запускать**:
+- После ЛЮБОГО редактирования файла
+- Перед фиксацией изменений
+- После того, как любой автоматизированный инструмент изменил файлы
 
-### 2. Variable Dependencies Check (CRITICAL)
+### 2. Проверка зависимостей переменных (КРИТИЧНО)
 
-**When modifying arrays or constants, ALWAYS verify related definitions:**
+**При изменении массивов или констант ВСЕГДА проверяйте связанные определения:**
 
-Example - Adding items to dlg_scancodes array:
-1. ✅ Check `MH_NUM_SCANCODES` in Settings.h (increase by number of new items)
-2. ✅ Check `MH_NUM_SCANCODES_EXTRA` in Settings.h (increase by number of new items)
-3. ✅ Verify array bounds match declaration: `dlg_scancodes[MH_NUM_SCANCODES_EXTRA]`
-4. ✅ Check all usages in Settings.cpp (loops, initialization, etc.)
-5. ✅ Verify MagicWindow.cpp uses correct index bounds
-6. ✅ Check Settings2.cpp for any related references
+Пример - добавление элементов в массив `dlg_scancodes`:
+1. ✅ Проверьте `MH_NUM_SCANCODES` в Settings.h (увеличьте на количество новых элементов)
+2. ✅ Проверьте `MH_NUM_SCANCODES_EXTRA` в Settings.h (увеличьте на количество новых элементов)
+3. ✅ Убедитесь, что границы массива соответствуют объявлению: `dlg_scancodes[MH_NUM_SCANCODES_EXTRA]`
+4. ✅ Проверьте все использования в Settings.cpp (циклы, инициализация и т.д.)
+5. ✅ Убедитесь, что MagicWindow.cpp использует правильные границы индексов
+6. ✅ Проверьте Settings2.cpp на наличие связанных ссылок
 
-**Common pattern for arrays**:
+**Общий паттерн для массивов**:
 ```cpp
-// In Settings.h
-#define MH_NUM_SCANCODES 105        // Update this!
-#define MH_NUM_SCANCODES_EXTRA 110  // Update this!
+// В Settings.h
+#define MH_NUM_SCANCODES 105        // Обновите это!
+#define MH_NUM_SCANCODES_EXTRA 110  // Обновите это!
 
-// In Settings.cpp
+// В Settings.cpp
 MHWORDChar dlg_scancodes[MH_NUM_SCANCODES_EXTRA] = { ... };
 ```
 
-**Search pattern**:
+**Паттерн поиска**:
 ```bash
-# Always search for all related constants
+# Всегда ищите все связанные константы
 grep -n "MH_NUM_SCANCODES\|dlg_scancodes" *.cpp *.h
 grep -n "ARRAY_SIZE\|array_name" *.cpp *.h
 ```
 
-### 3. Build Verification (REQUIRED)
+### 3. Проверка сборки (ОБЯЗАТЕЛЬНО)
 
-**After completing changes, ALWAYS verify the build:**
+**После завершения изменений ВСЕГДА проверяйте сборку:**
 
-1. **Open in Visual Studio**: Load MHook2.sln
-2. **Clean solution**: Build → Clean Solution
-3. **Rebuild**: Build → Rebuild Solution
-4. **Check for ERRORS** (ignore warnings):
+1. **Откройте в Visual Studio**: Загрузите MHook2.sln
+2. **Очистите решение**: Build → Clean Solution
+3. **Пересоберите**: Build → Rebuild Solution
+4. **Проверьте на наличие ОШИБОК** (игнорируйте предупреждения):
    - View → Error List
-   - Filter by "Errors only" (ignore warnings)
-   - All errors must be resolved before proceeding
+   - Фильтр по "Только ошибки" (игнорируйте предупреждения)
+   - Все ошибки должны быть устранены перед продолжением
 
-**Common build errors to check for**:
-- C2078: "too many initializers" - array size mismatch
-- LNK errors: Missing implementations
-- C3861: Identifier not found
-- C2065: Undeclared identifier
+**Распространённые ошибки сборки для проверки**:
+- C2078: "too many initializers" - несоответствие размера массива
+- LNK ошибки: Отсутствующие реализации
+- C3861: Идентификатор не найден
+- C2065: Необъявленный идентификатор
 
-**DO NOT** consider the task complete if there are ANY errors.
+**НЕ считайте задачу завершённой, если есть ЛЮБЫЕ ошибки.**
 
-### 4. Testing Checklist
+### 4. Чек-лист тестирования
 
-After successful build:
-1. Test in Debug mode
-2. Test all affected modes (1-7)
-3. Test new functionality thoroughly
-4. Verify Russian text displays correctly
-5. Check no memory leaks or crashes
+После успешной сборки:
+1. Протестируйте в режиме отладки (Debug)
+2. Протестируйте все затронутые режимы (1-7)
+3. Тщательно протестируйте новую функциональность
+4. Убедитесь, что русский текст отображается корректно
+5. Проверьте отсутствие утечек памяти или вылетов
 
-## Notes
+## Примечания
 
-- The project extensively uses Win32 API - avoid modern C++ features that conflict
-- Resource file (.rc) is UTF-16 LE - handle with care when editing
-- Static variables are used extensively for global state
-- Timer-based logic is critical for proper key press timing
-- **Always re-run fix_encoding.py after any batch operations**
+- Проект extensively использует Win32 API - избегайте современных возможностей C++, которые могут конфликтовать
+- Файл ресурса (.rc) в кодировке UTF-16 LE - обращайтесь с осторожностью при редактировании
+- Статические переменные extensively используются для глобального состояния
+- Логика на основе таймеров критически важна для правильного тайминга нажатий клавиш
+- **Всегда повторно запускайте fix_encoding.py после любых пакетных операций**

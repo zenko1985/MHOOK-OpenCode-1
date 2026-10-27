@@ -186,24 +186,6 @@
 #define IDC_CHECK_WWISIBLE16            1563
 #define IDC_CHECK_WWISIBLE17            1564
 #define IDC_CHECK_WWISIBLE18            1565
-#define IDC_COMBO_WSENS1                1572
-#define IDC_COMBO_WSENS2                1573
-#define IDC_COMBO_WSENS3                1574
-#define IDC_COMBO_WSENS4                1575
-#define IDC_COMBO_WSENS5                1576
-#define IDC_COMBO_WSENS6                1577
-#define IDC_COMBO_WSENS7                1578
-#define IDC_COMBO_WSENS8                1579
-#define IDC_COMBO_WSENS9                1580
-#define IDC_COMBO_WSENS10               1581
-#define IDC_COMBO_WSENS11               1582
-#define IDC_COMBO_WSENS12               1583
-#define IDC_COMBO_WSENS13               1584
-#define IDC_COMBO_WSENS14               1585
-#define IDC_COMBO_WSENS15               1586
-#define IDC_COMBO_WSENS16               1587
-#define IDC_COMBO_WSENS17               1588
-#define IDC_COMBO_WSENS18               1589
 #define IDC_COMBO_WCOLOR1               1596
 #define IDC_COMBO_WCOLOR2               1597
 #define IDC_COMBO_WCOLOR3               1598
@@ -258,9 +240,6 @@
 #define IDC_COMBO_WGROUP16              1659
 #define IDC_COMBO_WGROUP17              1660
 #define IDC_COMBO_WGROUP18              1661
-#define IDC_EYETRACKER_CONNECT          1668
-#define IDC_COMBO_EYETRACKER            1669
-#define IDC_CHECK_EYECIRCLE             1670
 #define IDC_CHECK_CURSOR_VISIBLE        1671
 #define IDC_CHECK_AUTOCLICK             1700
 #define IDC_AUTOCLICK_SPEED             1701
@@ -313,13 +292,11 @@
 
 // Localization control IDs for Dialog 2
 #define IDC_LBL_WTEXT                   1920
-#define IDC_LBL_SENSOR                  1921
 #define IDC_LBL_COLOR                   1922
 #define IDC_LBL_COORDS                  1923
 #define IDC_LBL_SIZE                    1924
 #define IDC_LBL_KEY                     1925
 #define IDC_LBL_MODE                    1926
-#define IDC_LBL_TRACKER                 1927
 
 // Embedded AHK executables
 #define IDR_AHK_AUTOCLICK               200

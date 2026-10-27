@@ -195,11 +195,12 @@ void RecentFiles::PopulateDialogList(HWND hDlg, int comboId) {
 		[](const RecentFileInfo& a, const RecentFileInfo& b) {
 			return CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
 		});
-	std::sort(embFiles.begin(), embFiles.begin() + min((size_t)50, embFiles.size()),
+	size_t embMid = (std::min)((size_t)50, embFiles.size());
+	std::sort(embFiles.begin(), embFiles.begin() + embMid,
 		[](const RecentFileInfo& a, const RecentFileInfo& b) {
 			return CompareFileTime(&a.lastWriteTime, &b.lastWriteTime) > 0;
 		});
-	std::sort(embFiles.begin() + min((size_t)50, embFiles.size()), embFiles.end(),
+	std::sort(embFiles.begin() + embMid, embFiles.end(),
 		[](const RecentFileInfo& a, const RecentFileInfo& b) {
 			return a.filename < b.filename;
 		});

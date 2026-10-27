@@ -9,4 +9,14 @@ TCHAR* EmbeddedExe_Extract(int resourceId);
 TCHAR* EmbeddedExe_GetAutoClickPath();
 // Get path to extracted wheel exe (extracts if needed)
 TCHAR* EmbeddedExe_GetWheelPath();
+// Запустить скрипт и запомнить его процесс, чтобы потом завершить именно его.
+// scriptPath - путь к .ahk, exeDir - рабочий каталог для запуска.
+// Возвращает true, если скрипт запущен (или уже был запущен нами).
+bool EmbeddedExe_LaunchScript(int resourceId, TCHAR *scriptPath, TCHAR *exeDir);
+// Завершить ранее запущенный нами скрипт
+void EmbeddedExe_StopScript(int resourceId);
+// Завершить все запущенные нами скрипты
+void EmbeddedExe_StopAllScripts();
+// Запущен ли сейчас скрипт
+bool EmbeddedExe_IsScriptRunning(int resourceId);
 #endif

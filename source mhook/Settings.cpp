@@ -28,7 +28,6 @@
 #include "EmbeddedExe.h"
 static char char_buf[4096];
 static TCHAR tchar_buf[4096];
-void ResetEytrackerBuffer(); // Определена в OnGazeData
 extern HINSTANCE	MHInst;
 extern HWND		MHhwnd;
 extern HHOOK handle;
@@ -296,7 +295,6 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 			case IDOK: 	//Хорошо!
 				// 1. Чувствительность
 				MHSettings::BeforeSaveOrStart(hdwnd);
-				ResetEytrackerBuffer();
 				MagicWindow::ForceTopMost();
 				EndDialog(hdwnd,0);
 				return 1;
@@ -431,7 +429,6 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 							RecentFiles::PopulateDialogList(hdwnd, IDC_LIST_RECENT_FILES);
 							MHSettings::AfterLoad(hdwnd);
 							MHSettings::BeforeSaveOrStart(hdwnd);
-							ResetEytrackerBuffer();
 							MagicWindow::ForceTopMost();
 							EndDialog(hdwnd, 0);
 						}
@@ -1288,15 +1285,23 @@ void MHSettings::BeforeSaveOrStart(HWND hdwnd)
 			MHSettings::flag_lmb_esc=true;
 		else MHSettings::flag_lmb_esc=false;
 		// Запуск AHK скриптов при активации галочек
+		// Процесс скрипта запоминаем, чтобы потом завершить именно его,
+		// а не все AutoHotkey* подряд.
+		// ВНИМАНИЕ: EmbeddedExe_GetAutoClickPath/GetWheelPath возвращают
+		// указатель на внутренний статический буфер, освобождать его нельзя
 		if(MHSettings::flag_autoclick_ahk) {
 			TCHAR* scriptPath = EmbeddedExe_GetAutoClickPath();
 			if(scriptPath) {
 				TCHAR exeDir[MAX_PATH];
 				StringCchCopy(exeDir, MAX_PATH, scriptPath);
 				PathRemoveFileSpec(exeDir);
-				ShellExecute(NULL, _T("open"), scriptPath, NULL, exeDir, SW_SHOW);
-				MHSettings::flag_autoclick_ahk_loaded=true;
+				MHSettings::flag_autoclick_ahk_loaded=EmbeddedExe_LaunchScript(IDR_AHK_AUTOCLICK, scriptPath, exeDir);
 			}
+		}
+		else {
+			// Галочку сняли - старый скрипт надо погасить
+			EmbeddedExe_StopScript(IDR_AHK_AUTOCLICK);
+			MHSettings::flag_autoclick_ahk_loaded=false;
 		}
 		if(MHSettings::flag_wheel_ahk) {
 			TCHAR* scriptPath = EmbeddedExe_GetWheelPath();
@@ -1304,9 +1309,12 @@ void MHSettings::BeforeSaveOrStart(HWND hdwnd)
 				TCHAR exeDir[MAX_PATH];
 				StringCchCopy(exeDir, MAX_PATH, scriptPath);
 				PathRemoveFileSpec(exeDir);
-				ShellExecute(NULL, _T("open"), scriptPath, NULL, exeDir, SW_SHOW);
-				MHSettings::flag_wheel_ahk_loaded=true;
+				MHSettings::flag_wheel_ahk_loaded=EmbeddedExe_LaunchScript(IDR_AHK_WHEEL, scriptPath, exeDir);
 			}
+		}
+		else {
+			EmbeddedExe_StopScript(IDR_AHK_WHEEL);
+			MHSettings::flag_wheel_ahk_loaded=false;
 		}
 		// 20. видимый курсор (красная точка)
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd,IDC_CHECK_CURSOR_VISIBLE,BM_GETCHECK, 0, 0))

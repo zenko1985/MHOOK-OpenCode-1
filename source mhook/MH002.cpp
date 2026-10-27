@@ -3,7 +3,6 @@
 #include <tchar.h>
 #include <shlwapi.h>
 #include <shellapi.h>
-#include <tlhelp32.h>
 #include <strsafe.h>
 #pragma comment(lib, "shlwapi.lib")
 #include "Bitmap.h"
@@ -11,6 +10,7 @@
 #include "MagicWindow.h"
 #include "CursorDot.h"
 #include "EmbeddedExe.h"
+#include "resource.h"
 extern HWND MHhwnd;
 // Прототип хук-процедуры (определена в HookProc.cpp)
 LRESULT CALLBACK HookProc(int disabled, WPARAM wParam, LPARAM lParam);
@@ -28,6 +28,20 @@ LONG quad_x=0,quad_y=0; // Координаты квадратика в окне
 static TRACKMOUSEEVENT tme={sizeof(TRACKMOUSEEVENT),TME_LEAVE,0,HOVER_DEFAULT};
 // для отладки (определены и назначаются в HookProc)
 extern LONG debug_x, debug_y;
+// Завершить AHK-скрипты, которые запустили мы сами.
+// Перебор всех процессов AutoHotkey* здесь не годится: под таким именем
+// работают и чужие скрипты пользователя, а наш скрипт из-за этого остаётся жив.
+static void StopLaunchedAhkScripts()
+{
+	if(MHSettings::flag_autoclick_ahk_loaded) {
+		EmbeddedExe_StopScript(IDR_AHK_AUTOCLICK);
+		MHSettings::flag_autoclick_ahk_loaded=false;
+	}
+	if(MHSettings::flag_wheel_ahk_loaded) {
+		EmbeddedExe_StopScript(IDR_AHK_WHEEL);
+		MHSettings::flag_wheel_ahk_loaded=false;
+	}
+}
 //====================================================================================
 // Оконная процедура
 //====================================================================================
@@ -70,6 +84,8 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 			break;
 		case WM_DESTROY:	// Завершение программы
 			// Чистим за собой
+			// Гасим AHK-скрипты, иначе кликер останется работать после выхода
+			StopLaunchedAhkScripts();
 			UnhookWindowsHookEx(handle);
 			//if((3==MHSettings::mode)||(4==MHSettings::mode)||(1==MHSettings::mode))
 			KillTimer(hwnd,1);
@@ -77,6 +93,7 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 			KillTimer(hwnd,3);
 			KillTimer(hwnd,4);
 			KillTimer(hwnd,5);
+			KillTimer(hwnd,6);
 			KillTimer(hwnd,7);
 			KillTimer(hwnd,8);
 			KillTimer(hwnd,9); // Watchdog таймер
@@ -101,44 +118,21 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 					//top_position=-1;
 					if(MHSettings::hh) MHSettings::hh->TopLeftCornerTimer();
 					break;
-				case 1:
-				{
-					// Выгружаем AHK скрипты перед открытием диалога настроек
-					// .ahk файлы запускаются через AutoHotkey.exe — убиваем его
-					HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-					if(hSnap != INVALID_HANDLE_VALUE) {
-						PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
-						if(Process32First(hSnap, &pe)) {
-							do {
-								if(MHSettings::flag_autoclick_ahk && MHSettings::flag_autoclick_ahk_loaded) {
-									if(_tcsicmp(pe.szExeFile, _T("AutoHotkey.exe")) == 0 ||
-									   _tcsicmp(pe.szExeFile, _T("AutoHotkey64.exe")) == 0) {
-										MHSettings::flag_autoclick_ahk_loaded=false;
-										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
-										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
-									}
-								}
-								if(MHSettings::flag_wheel_ahk && MHSettings::flag_wheel_ahk_loaded) {
-									if(_tcsicmp(pe.szExeFile, _T("AutoHotkey.exe")) == 0 ||
-									   _tcsicmp(pe.szExeFile, _T("AutoHotkey64.exe")) == 0) {
-										MHSettings::flag_wheel_ahk_loaded=false;
-										HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
-										if(hProc) { TerminateProcess(hProc, 0); CloseHandle(hProc); }
-									}
-								}
-							} while(Process32Next(hSnap, &pe));
-						}
-						CloseHandle(hSnap);
-					}
-				}
-					// Теперь смена позиция происходит только по выезду мыши из области!
-					//top_position=-1;
-					// Скрываем красную точку перед открытием диалога настроек
-					CursorDot::Hide();
-					//if(MHSettings::SettingsDialogue(hwnd))
+			case 1:
+				// Выгружаем AHK скрипты перед открытием диалога настроек
+				StopLaunchedAhkScripts();
+				// Теперь смена позиция происходит только по выезду мыши из области!
+				//top_position=-1;
+				// Скрываем красную точку перед открытием диалога настроек
+				CursorDot::Hide();
+				//if(MHSettings::SettingsDialogue(hwnd))
 				if(MHSettings::SettingsDialogue(MHhwnd))
 				{
 					// Чистим за собой - возможно, излишне
+					// ВНИМАНИЕ: при выходе по PostQuitMessage(0) сообщение WM_DESTROY
+					// не доставляется - процесс просто завершается. Поэтому гасим
+					// AHK-скрипты именно здесь, а в WM_DESTROY оставляем как подстраховку.
+					StopLaunchedAhkScripts();
 					if((3==MHSettings::mode)||(4==MHSettings::mode)||(1==MHSettings::mode)) KillTimer(hwnd,1);
 					MHKeypad::Reset();
 					UnhookWindowsHookEx(handle);
@@ -226,9 +220,15 @@ LRESULT CALLBACK WndProc(HWND hwnd,
 				screen_y = (LONG)cy;
 			}
 			// Козлиная система разрешений экрана в windows8.1...
+			// ВНИМАНИЕ: здесь делили на dm.dmPelsWidth без проверки. При отказе
+			// EnumDisplaySettings знаменатель нулевой - деление на ноль
 			DEVMODE dm;
 			ZeroMemory (&dm, sizeof (dm));
-			EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
+			if(!EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm) || dm.dmPelsWidth==0 || dm.dmPelsHeight==0) {
+				ZeroMemory (&dm, sizeof (dm));
+				dm.dmPelsWidth = screen_x;
+				dm.dmPelsHeight = screen_y;
+			}
 			screen_x_real=dm.dmPelsWidth;
 			screen_y_real=dm.dmPelsHeight;
 			screen_scale=((double)screen_x)/dm.dmPelsWidth;

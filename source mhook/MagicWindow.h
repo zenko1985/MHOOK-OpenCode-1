@@ -12,7 +12,7 @@ public:
 	int mw_color; // цвет окна
 	int x,y,width,height; // координаты и размеры
 	int button_or_switch; // 0 = кнопка, 1  = выключатель
-	int mouse_or_eytracker; // 0 - мышь, 1 - айтрекер
+	int mouse_or_eytracker; // 0 - мышь. Айтрекер удалён, поле оставлено ради формата .MHOOK, всегда 0
 	int button_index; // Номер клавиши в массиве коавиш
 	int mw_group; // группа взаимоисключающих клавиш, от 1 до 4 (или 0=нет группы)
 	bool pressed;

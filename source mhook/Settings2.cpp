@@ -4,18 +4,9 @@
 #include "resource.h"
 #include "Settings.h"
 #include "MagicWindow.h"
-#include "TET.h"
-#include "TobiiREX.h"
-#include "CircleWindow.h"
 #include "Localization.h"
 #include "Scancode.h"
 extern MHWORDChar dlg_scancodes[MH_NUM_SCANCODES_EXTRA];
-bool G_eytracker_is_working=false; // От этого зависит поведение кнопки
-int G_eytracker_num=0; // какой из трекеров выбран
-bool G_show_circle=false;
-static HBRUSH tracker_brush;
-static RECT tracker_rect={300,15,330,40};
-extern HBRUSH green_brush, yellow_brush, red_brush;
 bool G_dialogue2_active=false; // чтобы окна могли в него писать на лету
 HWND Settings2HWND; // Для тех же целей
 // Списки полей диалога
@@ -34,11 +25,6 @@ int IDC_CHECK_WWISIBLES[NUM_MAGIC_WINDOWS] ={IDC_CHECK_WWISIBLE1, IDC_CHECK_WWIS
 	IDC_CHECK_WWISIBLE9, IDC_CHECK_WWISIBLE10, IDC_CHECK_WWISIBLE11, IDC_CHECK_WWISIBLE12,
 	IDC_CHECK_WWISIBLE13, IDC_CHECK_WWISIBLE14, IDC_CHECK_WWISIBLE15, IDC_CHECK_WWISIBLE16,
 	IDC_CHECK_WWISIBLE17,IDC_CHECK_WWISIBLE18};
-int IDC_COMBO_WSENS[NUM_MAGIC_WINDOWS]={IDC_COMBO_WSENS1,IDC_COMBO_WSENS2,IDC_COMBO_WSENS3,IDC_COMBO_WSENS4,
-	IDC_COMBO_WSENS5, IDC_COMBO_WSENS6, IDC_COMBO_WSENS7, IDC_COMBO_WSENS8,
-	IDC_COMBO_WSENS9, IDC_COMBO_WSENS10, IDC_COMBO_WSENS11, IDC_COMBO_WSENS12,
-	IDC_COMBO_WSENS13, IDC_COMBO_WSENS14, IDC_COMBO_WSENS15, IDC_COMBO_WSENS16,
-	IDC_COMBO_WSENS17,IDC_COMBO_WSENS18};
 int IDC_COMBO_WCOLORS[NUM_MAGIC_WINDOWS]={IDC_COMBO_WCOLOR1,IDC_COMBO_WCOLOR2,IDC_COMBO_WCOLOR3,IDC_COMBO_WCOLOR4,
 	IDC_COMBO_WCOLOR5, IDC_COMBO_WCOLOR6, IDC_COMBO_WCOLOR7, IDC_COMBO_WCOLOR8,
 	IDC_COMBO_WCOLOR9, IDC_COMBO_WCOLOR10, IDC_COMBO_WCOLOR11, IDC_COMBO_WCOLOR12,
@@ -75,8 +61,6 @@ int IDC_EDIT_WHEIGHTS[NUM_MAGIC_WINDOWS]={IDC_EDIT_WHEIGHT1, IDC_EDIT_WHEIGHT2,I
 	IDC_EDIT_WHEIGHT9, IDC_EDIT_WHEIGHT10, IDC_EDIT_WHEIGHT11, IDC_EDIT_WHEIGHT12,
 	IDC_EDIT_WHEIGHT13, IDC_EDIT_WHEIGHT14, IDC_EDIT_WHEIGHT15, IDC_EDIT_WHEIGHT16,
 	IDC_EDIT_WHEIGHT17,IDC_EDIT_WHEIGHT18};
-#define MH_NUM_SENS 2
-TCHAR *dlg_sens[MH_NUM_SENS];
 #define MH_NUM_COLORS 4
 TCHAR *dlg_colors[MH_NUM_COLORS];
 #define MH_NUM_REPEAT 2
@@ -85,8 +69,6 @@ TCHAR *dlg_wrepeat[MH_NUM_REPEAT];
 TCHAR *dlg_wgroup[MH_NUM_GROUPS];
 static void InitDialog2Strings()
 {
-	dlg_sens[0]=(TCHAR*)L(LOC_COMBO_MOUSE);
-	dlg_sens[1]=(TCHAR*)L(LOC_COMBO_EYETRACKER);
 	dlg_colors[0]=(TCHAR*)L(LOC_COMBO_GREEN);
 	dlg_colors[1]=(TCHAR*)L(LOC_COMBO_YELLOW);
 	dlg_colors[2]=(TCHAR*)L(LOC_COMBO_RED);
@@ -98,60 +80,6 @@ static void InitDialog2Strings()
 	dlg_wgroup[2]=L"2";
 	dlg_wgroup[3]=L"3";
 	dlg_wgroup[4]=L"4";
-}
-//===================================================================================================
-// Функция соединения/разъединения от айтреекера
-//===================================================================================================
-static void EytrackerConnect(HWND hwnd)
-{
-	int initresult; // результат включения/выключения
-	// блокируем кнопки до конца операции
-	EnableWindow( GetDlgItem( hwnd, IDC_EYETRACKER_CONNECT ), FALSE);
-	EnableWindow( GetDlgItem( hwnd, IDC_COMBO_EYETRACKER ), FALSE);
-	// Включаем или выключаем?
-	if(G_eytracker_is_working) // выключаем
-	{
-		// здесь будет выключение
-		if(1==G_eytracker_num) initresult=BKBTobiiREX::Halt(hwnd);
-		else initresult=BKBTET::Halt(hwnd);
-		// Результат игнорируем...
-		//Sleep(1000);
-		// Меняем надпись на кнопке
-		SetWindowText(GetDlgItem( hwnd, IDC_EYETRACKER_CONNECT ), L(LOC_BTN_START_TRACKER));
-		// Разблокируем список айтрекеров
-		EnableWindow( GetDlgItem( hwnd, IDC_COMBO_EYETRACKER ), TRUE);
-		// рисуем красный кружок
-		tracker_brush=red_brush;
-		InvalidateRect(hwnd,NULL,FALSE);
-		G_eytracker_is_working=false;
-		if(G_show_circle)
-			CircleWindow::Hide();
-	}
-	else // включаем
-	{
-		// здесь будет включение
-		if(1==G_eytracker_num) initresult=BKBTobiiREX::Init(hwnd);
-		else initresult=BKBTET::Init(hwnd);
-		//Sleep(1000);
-		// Если включение удалось
-		if(0==initresult)
-		{
-			// Меняем надпись на кнопке
-			SetWindowText(GetDlgItem( hwnd, IDC_EYETRACKER_CONNECT ), L(LOC_BTN_STOP_TRACKER));
-			// рисуем зелёный кружок
-			tracker_brush=green_brush;
-			InvalidateRect(hwnd,NULL,FALSE);
-			G_eytracker_is_working=true;
-			if(G_show_circle) CircleWindow::Show();
-		}
-		else // Если не удалось - оставляем красный кружок и разблокировать список
-		{
-			// Разблокируем список айтрекеров
-			EnableWindow( GetDlgItem( hwnd, IDC_COMBO_EYETRACKER ), TRUE);
-		}
-	}
-	// В конце операции разблокируем кнопку, но список разблокируется, только если айтрекер выключен
-	EnableWindow( GetDlgItem( hwnd, IDC_EYETRACKER_CONNECT ), TRUE);
 }
 //===================================================================================================
 // Оконная процедура второго диалога
@@ -173,9 +101,6 @@ BOOL CALLBACK DlgSettings2WndProc(HWND hdwnd,
 			G_dialogue2_active=false;
 			MHSettings::BeforeSaveOrStart2(hdwnd);
 			EndDialog(hdwnd,0);
-			return 1;
-		case IDC_EYETRACKER_CONNECT:
-			EytrackerConnect(hdwnd);
 			return 1;
 		}
 		// 2. Перебираем все controls
@@ -223,51 +148,13 @@ BOOL CALLBACK DlgSettings2WndProc(HWND hdwnd,
 				}
 			}
 		} // for
-		// 2.4. Айтрекер
-		if(IDC_COMBO_EYETRACKER==lo)
-		{
-			if(hi==CBN_SELENDOK)
-			{
-				G_eytracker_num=static_cast<int>(SendDlgItemMessage(Settings2HWND,IDC_COMBO_EYETRACKER, CB_GETCURSEL, 0, 0L));
-				return 1;
-			}
-		}
-		// 2.5. Показывать кружок взгляда
-		if(IDC_CHECK_EYECIRCLE==lo)
-		{
-			if(hi==BN_CLICKED )
-			{
-				if(BST_CHECKED==SendDlgItemMessage(Settings2HWND,IDC_CHECK_EYECIRCLE,BM_GETCHECK, 0, 0))
-				{
-					G_show_circle=true;
-					if(G_eytracker_is_working) CircleWindow::Show();
-				}
-				else
-				{
-					G_show_circle=false;
-					CircleWindow::Hide();
-				}
-				return 1;
-			}
-		}
 	} // switch WM_COMMAND
 	else if(WM_INITDIALOG==uMsg)
 	{
 		Settings2HWND=hdwnd;
 		G_dialogue2_active=true; // чтобы окна могли в него писать на лету
 		MHSettings::FillDialogue2(hdwnd);
-		// каким цветом рисовать состояние трекера?
-		if(G_eytracker_is_working) tracker_brush=green_brush;
-		else tracker_brush=red_brush;
 		return 1;
-	}
-	else if(WM_PAINT==uMsg)
-	{
-		HDC hdc;
-		PAINTSTRUCT ps;
-		hdc=BeginPaint(hdwnd,&ps);
-		FillRect(hdc,&tracker_rect,tracker_brush);
-		EndPaint(hdwnd,&ps);
 	}
 return 0;
 }
@@ -278,15 +165,6 @@ void MHSettings::FillDialogue2(HWND hdwnd)
 {
 	int i,k;
 	InitDialog2Strings();
-	// Про ай-трекеры
-	SendDlgItemMessage(hdwnd,IDC_COMBO_EYETRACKER, CB_ADDSTRING, 0, (LPARAM)L"TheEyeTribe");
-	// Для Tobii раньше были только 32-разрядные библиотеки
-	SendDlgItemMessage(hdwnd,IDC_COMBO_EYETRACKER, CB_ADDSTRING, 0, (LPARAM)L"Tobii 4C/EyeX");
-	SendDlgItemMessage(hdwnd,IDC_COMBO_EYETRACKER, CB_SETCURSEL, G_eytracker_num, 0L);
-	if(G_eytracker_is_working) 		SetWindowText(GetDlgItem( hdwnd, IDC_EYETRACKER_CONNECT ), L(LOC_BTN_STOP_TRACKER));
-	else	SetWindowText(GetDlgItem( hdwnd, IDC_EYETRACKER_CONNECT ), L(LOC_BTN_START_TRACKER));
-	if(G_show_circle) SendDlgItemMessage(hdwnd, IDC_CHECK_EYECIRCLE, BM_SETCHECK, BST_CHECKED, 0);
-	else SendDlgItemMessage(hdwnd, IDC_CHECK_EYECIRCLE, BM_SETCHECK, BST_UNCHECKED, 0);
 	// перебор всех строк
 	for(i=0;i<NUM_MAGIC_WINDOWS;i++)
 	{
@@ -295,12 +173,6 @@ void MHSettings::FillDialogue2(HWND hdwnd)
 		else SendDlgItemMessage(hdwnd, IDC_CHECK_WWISIBLES[i], BM_SETCHECK, BST_UNCHECKED, 0);
 		// 2. имя окна
 		SendDlgItemMessage(hdwnd,IDC_EDIT_WNAMES[i],WM_SETTEXT, 0, (LPARAM)MagicWindow::magic_wnd[i].mw_name);
-		// 3.мышь или айтрекер
-		for(k=0;k<MH_NUM_SENS;k++)
-		{
-			SendDlgItemMessage(hdwnd,IDC_COMBO_WSENS[i], CB_ADDSTRING, 0, (LPARAM)(dlg_sens[k]));
-		}
-		SendDlgItemMessage(hdwnd,IDC_COMBO_WSENS[i], CB_SETCURSEL, MagicWindow::magic_wnd[i].mouse_or_eytracker, 0L);
 		// 4. цвета
 		for(k=0;k<MH_NUM_COLORS;k++)
 		{
@@ -346,14 +218,23 @@ void MHSettings::BeforeSaveOrStart2(HWND hdwnd)
 	// перебор всех строк
 	for(i=0;i<NUM_MAGIC_WINDOWS;i++)
 	{
-		// 3.мышь или айтрекер
-		MagicWindow::magic_wnd[i].mouse_or_eytracker=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WSENS[i], CB_GETCURSEL, 0, 0L));
+		// CB_GETCURSEL возвращает CB_ERR (-1), если список пуст или элемент
+		// не выбран. Раньше это значение писалось в структуру без проверки
+		// и потом уходило в индекс массива
+		int sel;
 		// 5.клавиши
-		MagicWindow::magic_wnd[i].button_index=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WKEYS[i], CB_GETCURSEL, 0, 0L));
+		sel=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WKEYS[i], CB_GETCURSEL, 0, 0L));
+		MagicWindow::magic_wnd[i].button_index=(sel==CB_ERR) ? -1 : sel;
 		// 6.кнопка или переключатель
-		MagicWindow::magic_wnd[i].button_or_switch=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WREPEATS[i], CB_GETCURSEL, 0, 0L));
+		sel=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WREPEATS[i], CB_GETCURSEL, 0, 0L));
+		MagicWindow::magic_wnd[i].button_or_switch=(sel==CB_ERR) ? 0 : sel;
 		// 7.группа
-		MagicWindow::magic_wnd[i].mw_group=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WGROUPS[i], CB_GETCURSEL, 0, 0L));
+		sel=static_cast<int>(SendDlgItemMessage(hdwnd,IDC_COMBO_WGROUPS[i], CB_GETCURSEL, 0, 0L));
+		MagicWindow::magic_wnd[i].mw_group=(sel==CB_ERR) ? 0 : sel;
+		// mouse_or_eytracker остаётся в структуре и в файле конфигурации,
+		// чтобы не сломать формат .MHOOK. Айтрекера больше нет, поэтому
+		// единственное допустимое значение - 0 (мышь)
+		MagicWindow::magic_wnd[i].mouse_or_eytracker=0;
 	}
 }
 //====================================================================================
@@ -450,6 +331,10 @@ int MHSettings::Load2(FILE *f,int wcount)
 	int i,len;
 	MagicWindow *mw;
 	char lcbuffer[1024];
+	// ВНИМАНИЕ: wcount приходит из файла конфигурации. Без проверки
+	// значение больше NUM_MAGIC_WINDOWS пишет за пределы массива magic_wnd
+	if(wcount > NUM_MAGIC_WINDOWS) return 1;
+	if(wcount < 0) return 1;
 	for(i=0;i<wcount;i++)
 	{
 		mw=&MagicWindow::magic_wnd[i];
@@ -474,15 +359,41 @@ int MHSettings::Load2(FILE *f,int wcount)
 				&mw->button_or_switch, &mw->mouse_or_eytracker, &mw->button_index, &mw->mw_group))
 			{
 				// Старый формат (до reorder): пересчитываем индекс по старому порядку
-				WORD val = old_scancode_order[mw->button_index];
-				if(val != 0xFFFF) {
-					for(int si=0; si<MH_NUM_SCANCODES_EXTRA; si++) {
-						if(dlg_scancodes[si].value == val) { mw->button_index=si; break; }
+				// Проверяем диапазон: button_index приходит из файла и может
+				// быть любым int, а old_scancode_order имеет MH_NUM_SCANCODES_EXTRA элементов
+				if(mw->button_index >= 0 && mw->button_index < MH_NUM_SCANCODES_EXTRA) {
+					WORD val = old_scancode_order[mw->button_index];
+					if(val != 0xFFFF) {
+						for(int si=0; si<MH_NUM_SCANCODES_EXTRA; si++) {
+							if(dlg_scancodes[si].value == val) { mw->button_index=si; break; }
+						}
 					}
+				} else {
+					mw->button_index = -1;	// вне диапазона - клавиша не назначена
 				}
 			}
 			else return 1;
 		}
+		// Валидация полей из файла. Эти значения потом используются как индексы
+		// (mw_color -> brushes[4], button_index -> dlg_scancodes) и как размеры
+		// для MoveWindow, поэтому повреждённый .MHOOK давал выход за границы
+		// массива и мусорные размеры окна
+		if(mw->mw_color < 0 || mw->mw_color > 3) mw->mw_color = 0;	// brushes[4]
+		if(mw->button_index < 0 || mw->button_index >= MH_NUM_SCANCODES_EXTRA)
+			mw->button_index = -1;	// -1 = клавиша не назначена (SC_NONE)
+		if(mw->button_or_switch < 0 || mw->button_or_switch > 1) mw->button_or_switch = 0;
+		// Айтрекер удалён. Старые .MHOOK ещё содержат это поле, поэтому читаем его
+	// (формат файла менять нельзя), но всегда принудительно зануляем
+	mw->mouse_or_eytracker = 0;
+		if(mw->mw_group < 0 || mw->mw_group >= MH_NUM_GROUPS) mw->mw_group = 0;
+		mw->active = mw->active ? 1 : 0;
+		// Размеры: минимум 1 px, максимум - с запасом от разрешения экрана.
+		// Иначе MoveWindow получает переполненные x+width и рисует мусор
+		const int MH_MAX_WIN_DIM = 10000;
+		if(mw->width  < 1 || mw->width  > MH_MAX_WIN_DIM) mw->width  = 1;
+		if(mw->height < 1 || mw->height > MH_MAX_WIN_DIM) mw->height = 1;
+		if(mw->x < -MH_MAX_WIN_DIM || mw->x > MH_MAX_WIN_DIM) mw->x = 0;
+		if(mw->y < -MH_MAX_WIN_DIM || mw->y > MH_MAX_WIN_DIM) mw->y = 0;
 		// Обязательно применить к окнам!
 		// Корректируем размеры: в файле хранятся размеры клиентской области,
 		// а MoveWindow ожидает размеры всего окна с учетом рамки и заголовка
@@ -517,15 +428,9 @@ void MHSettings::UpdateDialog2Texts(HWND hdwnd)
 	SetWindowText(hdwnd, L(LOC_DIALOG2_TITLE));
 	SetWindowText(GetDlgItem(hdwnd, IDOK), L(LOC_BTN_OK));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_WTEXT), L(LOC_LBL_WINDOW_TEXT));
-	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_SENSOR), L(LOC_LBL_SENSOR));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_COLOR), L(LOC_LBL_COLOR));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_COORDS), L(LOC_LBL_COORDINATES));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_SIZE), L(LOC_LBL_SIZE));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_KEY), L(LOC_LBL_KEY));
 	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_MODE), L(LOC_LBL_MODE));
-	SetWindowText(GetDlgItem(hdwnd, IDC_LBL_TRACKER), L(LOC_LBL_EYETRACKER));
-	SetWindowText(GetDlgItem(hdwnd, IDC_CHECK_EYECIRCLE), L(LOC_CHK_EYE_CIRCLE));
-	// Eyetracker connect button
-	SetWindowText(GetDlgItem(hdwnd, IDC_EYETRACKER_CONNECT),
-		G_eytracker_is_working ? L(LOC_BTN_STOP_TRACKER) : L(LOC_BTN_START_TRACKER));
 }

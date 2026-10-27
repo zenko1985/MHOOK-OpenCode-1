@@ -6,10 +6,8 @@
 #include "Settings.h"
 #include "MHRepErr.h"
 #include "MagicWindow.h"
-#include "CircleWindow.h"
-#include "TET.h"
-#include "TobiiREX.h"
 #include "Localization.h"
+#include "EmbeddedExe.h"
 #define MH_WINDOW_SIZE 200
 // Watchdog для WH_MOUSE_LL: Windows 11 24H2 может тихо снять хук при превышении таймаута
 // Проверяем каждые 5 секунд и переустанавливаем при необходимости
@@ -43,8 +41,6 @@ HHOOK handle;
 LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wparam, LPARAM lparam);
 // А эта - в HookProc
 LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam);
-extern bool G_eytracker_is_working;
-extern int G_eytracker_num; // какой из трекеров выбран
 extern bool timer5_needed; // Из MagicWindow
 //=======================================================================
 // программа
@@ -106,14 +102,19 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	screen_x=GetSystemMetrics(SM_CXSCREEN);
 	screen_y=GetSystemMetrics(SM_CYSCREEN);
 	// Козлиная система разрешений экрана в windows8.1...
+	// ВНИМАНИЕ: возврата EnumDisplaySettings раньше не проверяли. При отказе
+	// dmPelsWidth/dmPelsHeight остаются нулевыми, и на них потом делят -
+	// получаем деление на ноль и неверный screen_scale
 	DEVMODE dm;
 	ZeroMemory (&dm, sizeof (dm));
-	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
+	if(!EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm) || dm.dmPelsWidth==0 || dm.dmPelsHeight==0) {
+		ZeroMemory (&dm, sizeof (dm));
+		dm.dmPelsWidth = screen_x;
+		dm.dmPelsHeight = screen_y;
+	}
 	screen_x_real=dm.dmPelsWidth;
 	screen_y_real=dm.dmPelsHeight;
 	screen_scale = dm.dmPelsWidth > 0 ? ((double)screen_x)/dm.dmPelsWidth : 1.0;
-	// Создаём окно с кружком
-	CircleWindow::Init();
 	// С самого начала пытаемся загрузить конфигурацию по умолчанию
 	MHSettings::OpenMHookConfig(NULL,L"default.MHOOK");
 	// Синхронизируем язык
@@ -168,7 +169,13 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	// Создаём волшебные окна (пока скрытые)
 	MagicWindow::Init();
 	// Диалог настроек
-	if(MHSettings::SettingsDialogue(MHhwnd)) return -1;
+	// Возвращает ненулевое значение при Cancel - тогда программа завершается.
+	// AHK-скрипты к этому моменту могли быть запущены через OK диалога,
+	// гасим их явно: WM_DESTROY при выходе из WinMain не доставляется.
+	if(MHSettings::SettingsDialogue(MHhwnd)) {
+		EmbeddedExe_StopAllScripts();
+		return -1;
+	}
 	// Разворачиваем окно mhook
 	ShowWindow( MHhwnd, SW_SHOWNORMAL );
 	// Инициализируем работу хука (LL хук для Windows 10/11/24H2)
@@ -181,20 +188,17 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	SetTimer(MHhwnd, MH_HOOK_WATCHDOG_TIMER, MH_HOOK_WATCHDOG_INTERVAL, NULL);
 #endif
 	//Цикл обработки сообщений
-	while(GetMessage(&msg,NULL,0,0))
+	// GetMessage возвращает -1 при ошибке. Раньше это не различалось с 0,
+	// и цикл крутился вечно с неработающим окном - приложение "зависало"
+	BOOL gotMsg;
+	while((gotMsg=GetMessage(&msg,NULL,0,0))!=0)
     {
+		if(gotMsg==(BOOL)-1) break;	// ошибка - выходим, иначе бесконечный цикл
 		TranslateMessage( &msg );
         DispatchMessage( &msg );
 	}// while !WM_QUIT
 	// Чистим за собой (на всякий случай ещё раз, если выходим не по WM_CLOSE)
 	UnhookWindowsHookEx(handle);
-	// Выключаем айтрекер
-	if(G_eytracker_is_working) // выключаем
-	{
-		// здесь будет выключение
-		if(0==G_eytracker_num) BKBTobiiREX::Halt(NULL);
-		else BKBTET::Halt(NULL);
-	}
 	// битмапы
 	MHBitmap::Halt();
 	// Отпускаем нажатые кнопки волшебных окон

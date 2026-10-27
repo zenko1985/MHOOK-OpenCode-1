@@ -61,20 +61,13 @@ static const TCHAR* strings_RU[LOC_STRING_COUNT] = {
 	L"Удержание правой кнопки мыши и движения жмут кнопки", // 54
 	// Dialog 2
 	L"Надпись в окне",                               // 55
-	L"Сенсор",                                       // 56
 	L"Цвет",                                         // 57
 	L"Координаты",                                   // 58
 	L"Размер",                                       // 59
 	L"Клавиша",                                      // 60
 	L"Режим",                                        // 61
-	L"Айтрекер:",                                    // 62
 	L"ОК",                                           // 63
-	L"Запустить",                                    // 64
-	L"Остановить",                                   // 65
-	L"Обозначать кружком направление взгляда",       // 66
 	// Combos
-	L"мышь",                                         // 67
-	L"айтрекер",                                     // 68
 	L"зелёный",                                      // 69
 	L"жёлтый",                                       // 70
 	L"красный",                                      // 71
@@ -142,9 +135,6 @@ static const TCHAR* strings_RU[LOC_STRING_COUNT] = {
 	L"Нет системной ошибки",                         // 127
 	L"MH: сообщение об ошибке",                      // 128
 	L"Непорядок!",                                   // 129
-	L"неизвестно",                                   // 130
-	L"Ошибка Tobii Gaze SDK: %d (%s)",              // 131
-	L"MHook:Gaze SDK: сообщение об ошибке",          // 132
 	// File dialog
 	L"файлы MHOOK\0*.MHOOK\0\0",                    // 133
 	L"Открыть файл конфигурации MHOOK",              // 134
@@ -219,20 +209,13 @@ static const TCHAR* strings_EN[LOC_STRING_COUNT] = {
 	L"Holding right mouse button and movements press keys", // 54
 	// Dialog 2
 	L"Window text",                                  // 55
-	L"Sensor",                                       // 56
 	L"Color",                                        // 57
 	L"Coordinates",                                  // 58
 	L"Size",                                         // 59
 	L"Key",                                          // 60
 	L"Mode",                                         // 61
-	L"Eyetracker:",                                  // 62
 	L"OK",                                           // 63
-	L"Start",                                        // 64
-	L"Stop",                                         // 65
-	L"Mark gaze direction with circle",              // 66
 	// Combos
-	L"mouse",                                        // 67
-	L"eyetracker",                                   // 68
 	L"green",                                        // 69
 	L"yellow",                                       // 70
 	L"red",                                          // 71
@@ -300,9 +283,6 @@ static const TCHAR* strings_EN[LOC_STRING_COUNT] = {
 	L"No system error",                              // 127
 	L"MH: error message",                            // 128
 	L"Error!",                                       // 129
-	L"unknown",                                      // 130
-	L"Tobii Gaze SDK error: %d (%s)",                // 131
-	L"MHook:Gaze SDK: error message",                // 132
 	// File dialog
 	L"MHOOK files\0*.MHOOK\0\0",                     // 133
 	L"Open MHOOK configuration file",                // 134

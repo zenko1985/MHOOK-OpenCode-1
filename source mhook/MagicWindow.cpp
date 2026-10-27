@@ -182,7 +182,6 @@ LRESULT CALLBACK MHMagicWndProc(HWND hwnd,
 		// Пара событий, по которым мы определяем, находится ли мышь над окном
 		case WM_MOUSEMOVE:
 			mw=(MagicWindow *)GetWindowLongPtr(hwnd,GWLP_USERDATA);
-			if(mw->mouse_or_eytracker!=0) break; // Только мышиные окна обрабатываем!
 			if((!MagicWindow::editmode)&&(!(mw->f_inside_window)))
 			{
 				TrackMouseEvent(&(mw->tme));
@@ -215,7 +214,6 @@ LRESULT CALLBACK MHMagicWndProc(HWND hwnd,
 			break;
 		case WM_MOUSELEAVE:
 			mw=(MagicWindow *)GetWindowLongPtr(hwnd,GWLP_USERDATA);
-			if(mw->mouse_or_eytracker!=0) break; // Только мышиные окна обрабатываем!
 			if(!MagicWindow::editmode)
 			{
 				mw->f_inside_window=false;
@@ -419,11 +417,16 @@ void MagicWindow::ShowRuntime()
 				g_SetWindowBand(magic_wnd[i].MWhwnd, HWND_TOPMOST, ZBID_SYSTEM_TOOLS);
 			}
 			// Есть ли среди активных окон такие, которым нужен Timer 5
-			if(magic_wnd[i].button_index >= 0 && magic_wnd[i].button_index < MH_NUM_SCANCODES_EXTRA &&
-				(dlg_scancodes[magic_wnd[i].button_index].value==0xE103)||
-				(dlg_scancodes[magic_wnd[i].button_index].value==0xE104)||
-				(dlg_scancodes[magic_wnd[i].button_index].value==0xE105))
-				timer5_needed=true;
+			// ВНИМАНИЕ: проверку диапазона нужно закрыть скобками целиком.
+			// Приоритет операторов выше у &&, чем у ||, и в исходном варианте
+			// первые две проверки || шли мимо проверки диапазона - это чтение
+			// за пределами dlg_scancodes при button_index == -1 (CB_ERR)
+			const int bi = magic_wnd[i].button_index;
+			if(bi >= 0 && bi < MH_NUM_SCANCODES_EXTRA) {
+				const WORD v = dlg_scancodes[bi].value;
+				if(v==0xE103 || v==0xE104 || v==0xE105)
+					timer5_needed=true;
+			}
 		}
 	}
 	if(timer5_needed&&MHhwnd) SetTimer(MHhwnd,5,25,NULL); // 40 раз в секунду

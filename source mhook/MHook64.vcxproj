@@ -225,7 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bitmap.h" />
-    <ClInclude Include="CircleWindow.h" />
+    
     <ClInclude Include="CursorDot.h" />
     <ClInclude Include="hh1.h" />
     <ClInclude Include="hh1a.h" />
@@ -242,8 +242,6 @@
     <ClInclude Include="MVector.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Settings.h" />
-    <ClInclude Include="TET.h" />
-    <ClInclude Include="TobiiREX.h" />
     <ClInclude Include="WM_USER_messages.h" />
     <ClInclude Include="RecentFiles.h" />
     <ClInclude Include="miniz.h" />
@@ -252,7 +250,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bitmap.cpp" />
-    <ClCompile Include="CircleWindow.cpp" />
+    
     <ClCompile Include="CursorDot.cpp" />
     <ClCompile Include="hh1.cpp" />
     <ClCompile Include="hh1a.cpp" />
@@ -269,11 +267,8 @@
     <ClCompile Include="MHKeypad.cpp" />
     <ClCompile Include="MHRepErr.cpp" />
     <ClCompile Include="MVector.cpp" />
-    <ClCompile Include="OnGazeData.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Settings2.cpp" />
-    <ClCompile Include="TET.cpp" />
-    <ClCompile Include="TobiiREX.cpp" />
     <ClCompile Include="RecentFiles.cpp" />
     <ClCompile Include="Localization.cpp" />
     <ClCompile Include="EmbeddedExe.cpp" />

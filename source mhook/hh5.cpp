@@ -35,8 +35,19 @@ int MHookHandler5::OnMouseMove(LONG _x, LONG _y)
 		else
 		{
 			x+=dx;
-			if(x<0) x+=(8*MHSettings::circle_scale_factor-1);
-			if(x>(8*MHSettings::circle_scale_factor-1)) x-=(8*MHSettings::circle_scale_factor-1);
+			// Нормализация. Раньше было два if со знаком "минус/плюс один размер",
+			// что работает только если x лежит в [-1, 2] размера. При одном большом
+			// скачке мыши (переключение мониторов, warp, WM_MOUSEMOVE после
+			// переподключения) x выходит за диапазон, нормализация не выполняется,
+			// и position уходит за 0..7 - индекс в Press8 становится мусорным
+			{
+				const int ring = 8*MHSettings::circle_scale_factor;	// полный круг
+				if(ring > 0) {
+					x = ((x % ring) + ring) % ring;	// нормализованный modulo
+				} else {
+					x = 0;
+				}
+			}
 			position=x/MHSettings::circle_scale_factor;
 			if(position!=position_mem)
 			{
